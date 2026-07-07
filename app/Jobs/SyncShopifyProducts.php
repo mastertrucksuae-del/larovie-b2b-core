@@ -17,12 +17,18 @@ class SyncShopifyProducts implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $timeout = 600;
+    public int $timeout = 1800;
     public int $tries = 1;
 
     /** Cache key used by the admin UI to reflect "sync running" state. */
     public const RUNNING_KEY = 'shopify.sync.running';
     public const RESULT_KEY = 'shopify.sync.last_result';
+
+    public function __construct()
+    {
+        // Route to the dedicated Shopify queue (see SHOPIFY_QUEUE / config/shopify.php).
+        $this->onQueue(config('shopify.queue', 'default'));
+    }
 
     public function uniqueId(): string
     {
