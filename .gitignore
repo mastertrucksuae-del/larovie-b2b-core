@@ -29,3 +29,4 @@ Thumbs.db
 # npm cache (junk, never commit)
 npm-cache/
 **/npm-cache/
+.gstack/

@@ -234,8 +234,12 @@ new class extends Component
         <div class="sticky top-24 z-30 -mx-4 sm:-mx-6 lg:-mx-8 mb-8 border-b border-line bg-ivory/90 backdrop-blur-md"
              x-data="{
                  active: null,
+                 jumping: false,
+                 _jt: null,
                  sync() {
-                     const line = 160;
+                     // Just past where a jumped section lands (scroll-mt-52 = 208px) so the
+                     // active chip matches the section sitting under the sticky strip.
+                     const line = 212;
                      let current = null;
                      document.querySelectorAll('section[data-brand-index]').forEach(el => {
                          if (el.getBoundingClientRect().top - line <= 0) current = el.getAttribute('data-brand-index');
@@ -244,26 +248,31 @@ new class extends Component
                  }
              }"
              x-init="$nextTick(() => sync())"
-             x-effect="active !== null && $refs['chip' + active] && $refs['chip' + active].scrollIntoView({ inline: 'center', block: 'nearest' })"
-             @scroll.window.throttle.100ms="sync()"
+             x-effect="(() => { if (active === null) return; const t = $refs.track, c = $refs['chip' + active]; if (!t || !c) return; const delta = c.getBoundingClientRect().left - t.getBoundingClientRect().left - (t.clientWidth - c.offsetWidth) / 2; t.scrollBy({ left: delta, behavior: 'smooth' }); })()"
+             x-on:brand-jump.window="active = $event.detail.index; jumping = true; clearTimeout($data._jt); $data._jt = setTimeout(() => { jumping = false; sync() }, 1500)"
+             @scroll.window.throttle.100ms="jumping || sync()"
+             @scrollend.window="jumping = false; clearTimeout($data._jt); sync()"
              @resize.window.throttle.150ms="sync()">
             <div class="flex items-center gap-3 px-4 sm:px-6 lg:px-8 py-3">
                 <span class="hidden sm:block shrink-0 text-xs font-semibold uppercase tracking-[0.15em] text-plum-500/70">{{ __('shop.brands') }}</span>
-                <div class="flex gap-2 overflow-x-auto scroll-smooth no-scrollbar py-0.5 -my-0.5">
+                <div x-ref="track" class="flex gap-3 overflow-x-auto scroll-smooth no-scrollbar py-2 -my-2">
                     @foreach ($this->brandNav as $i => $b)
+                        {{-- Every brand renders as an identical white tile so the strip reads as one system,
+                             whatever shape the source logo is. Logo when we have one, name as the fallback. --}}
                         <button type="button" wire:click="goToBrand({{ $i }})"
                                 x-ref="chip{{ $i }}"
                                 :class="active === {{ $i }}
-                                    ? 'bg-plum text-white border-plum shadow-sm'
-                                    : 'bg-white text-ink border-line hover:border-plum/50 hover:bg-blush/40'"
-                                class="shrink-0 inline-flex items-center gap-2 rounded-full border py-2 pe-4 whitespace-nowrap transition-colors cursor-pointer {{ empty($b['logo']) ? 'ps-4' : 'ps-2' }} text-sm font-medium">
+                                    ? 'border-plum ring-2 ring-plum/25 shadow-sm'
+                                    : 'border-line hover:border-plum/40'"
+                                class="relative shrink-0 flex items-center justify-center h-16 w-32 rounded-xl border bg-white p-2.5 transition cursor-pointer"
+                                title="{{ $b['label'] }}">
                             @if (! empty($b['logo']))
-                                <img src="{{ $b['logo'] }}" alt="" aria-hidden="true"
-                                     class="h-6 w-6 rounded-full object-contain bg-white ring-1 ring-line/70 p-0.5" loading="lazy">
+                                <img src="{{ $b['logo'] }}" alt="{{ $b['label'] }}"
+                                     class="max-h-full max-w-full object-contain" loading="lazy">
+                            @else
+                                <span class="line-clamp-2 text-center text-sm font-semibold leading-tight text-ink">{{ $b['label'] }}</span>
                             @endif
-                            <span>{{ $b['label'] }}</span>
-                            <span :class="active === {{ $i }} ? 'bg-white/20 text-white' : 'bg-blush text-rose-deep'"
-                                  class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[11px] font-semibold transition-colors">{{ $b['count'] }}</span>
+                            <span class="absolute -top-2 -end-2 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-plum text-white text-[11px] font-semibold ring-2 ring-ivory">{{ $b['count'] }}</span>
                         </button>
                     @endforeach
                 </div>
@@ -338,21 +347,25 @@ new class extends Component
                     <section id="brand-{{ $idx }}" data-brand-index="{{ $idx }}" wire:key="brand-sec-{{ $idx }}"
                              x-data="{ open: true }"
                              x-on:brand-jump.window="if ($event.detail.index === {{ $idx }}) { open = true; $nextTick(() => $el.scrollIntoView({ behavior: 'smooth', block: 'start' })) }"
-                             class="scroll-mt-44">
+                             class="scroll-mt-52">
                         <div class="flex items-center gap-3 mt-12 mb-5 first:mt-0">
                             <button type="button" @click="open = !open" :aria-expanded="open"
                                     aria-controls="brand-grid-{{ $idx }}"
-                                    class="group flex items-center gap-3 cursor-pointer text-start">
+                                    class="group flex items-center gap-4 cursor-pointer text-start">
                                 <svg class="w-5 h-5 shrink-0 text-plum-500 transition-transform duration-200 rtl:-scale-x-100"
                                      :class="open ? 'rotate-90' : ''"
                                      fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                                 </svg>
                                 @if ($logo)
-                                    <img src="{{ $logo }}" alt="{{ $label }}"
-                                         class="h-9 w-auto max-w-28 object-contain shrink-0" loading="lazy">
+                                    {{-- Same white framed tile as the slider, larger — one consistent brand mark. --}}
+                                    <span class="inline-flex h-16 min-w-[8rem] max-w-[13rem] items-center justify-center rounded-xl border border-line bg-white px-5 py-2.5 transition group-hover:border-plum/40">
+                                        <img src="{{ $logo }}" alt="{{ $label }}" class="max-h-11 max-w-full object-contain" loading="lazy">
+                                    </span>
+                                    <span class="sr-only">{{ $label }}</span>
+                                @else
+                                    <h2 class="font-display text-2xl text-ink whitespace-nowrap group-hover:text-plum transition-colors">{{ $label }}</h2>
                                 @endif
-                                <h2 class="font-display text-2xl text-ink whitespace-nowrap group-hover:text-plum transition-colors">{{ $label }}</h2>
                                 <span class="inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full bg-blush text-rose-deep text-xs font-semibold">
                                     {{ $meta['count'] }}
                                 </span>

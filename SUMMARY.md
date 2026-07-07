@@ -104,3 +104,14 @@ tests under `tests/**`; `.env`, `.env.example`, `README.md`.
 - Catalogue `⚡catalogue.blade.php`: `brandNav()` attaches `logo` via `Brand::logoUrlMap()`; slider chips show a small circular logo; section headers show a wordmark logo (h-9). Graceful fallback to text-only when no logo.
 **Deploy note:** run `php artisan migrate` and ensure `storage:link` on the server (public disk) or logos 404.
 **Files:** migration, `app/Models/Brand.php`, `app/Filament/Resources/Brands/**` (7 files), `app/Services/Shopify/ProductSyncService.php`, `resources/views/components/⚡catalogue.blade.php`. Assets rebuilt; brand routes registered; views compile clean.
+
+## 2026-07-07 (brand logos — bigger, unified, name-hidden)
+**Topics:** User: logos not visible, make them big/consistent, hide name when a logo exists. Checked the live domain (wholesale.larovie.com) with the gstack headless browser.
+**Findings on live site:** logos DID load (no mixed-content/404) but were tiny 24px circles crammed next to the name, and source logos vary wildly in shape (200x200, 240x120, 160x160...), so the strip looked inconsistent.
+**Changes (all in `resources/views/components/⚡catalogue.blade.php`):**
+- Slider chips → uniform white tiles (h-16 × w-32, rounded-xl, border), logo `object-contain` centered, count as a small plum corner badge. Name shown only as a fallback when no logo. Active tile = plum border + ring.
+- Section headers → same white framed tile (h-16, logo max-h-11), name hidden (kept as `sr-only`) when a logo exists; falls back to the serif `<h2>` otherwise.
+- Fixed the jump-to-brand landing: the active-chip auto-centering was calling `scrollIntoView` which interrupted the page's smooth scroll (landed ~500px short). Now it scrolls only the horizontal track (`$refs.track.scrollBy`), never the window.
+- Fixed active-chip lag after a jump: set `active` immediately on `brand-jump`, suppress scroll-sync during the jump (`jumping` flag), and finalize on the `scrollend` event (1500ms timeout fallback for browsers without scrollend). Aligned the active-detection line (212px) with the section landing point (`scroll-mt-52` = 208px).
+**Verification:** previewed locally with 7 REAL production logos pulled down (had to swap the `public/storage` symlink for a real copy — PHP's built-in `artisan serve` 403s on symlinks on Windows; nginx on prod is fine). Confirmed via headless browser: tiles uniform, jump lands at 208px for near/mid brands, active chip matches the clicked brand every time, collapse toggle works. Screenshots taken. Cleaned up: symlink restored, test logo data/files removed.
+**Deploy:** push the blade change; Forge deploy rebuilds assets (`public/build` is gitignored → `npm run build` on server generates the new Tailwind classes). No migration needed this round.
