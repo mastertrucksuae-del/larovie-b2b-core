@@ -1,0 +1,62 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../views/**/*.blade.php';
+
+@theme {
+    /* Typography — editorial serif + clean sans (Larovie luxury minimalism) */
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+    --font-serif: 'Playfair Display', ui-serif, Georgia, serif;
+    --font-arabic: 'Tajawal', 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+    /* Brand palette — from the Larovié plum wordmark + rose accent */
+    --color-ink: #241522;          /* near-black plum, body text */
+    --color-plum-950: #201127;
+    --color-plum-900: #2a1730;
+    --color-plum-800: #341d3a;
+    --color-plum: #3e2340;         /* brand primary */
+    --color-plum-600: #55355a;
+    --color-plum-500: #6c4a72;
+
+    --color-rose-accent: #b76e79;  /* warm rose accent */
+    --color-rose-deep: #9c5763;
+    --color-blush: #f4eaec;        /* soft rose tint */
+
+    --color-ivory: #faf6f3;        /* warm page background */
+    --color-sand: #f0e9e3;         /* warm card/hairline base */
+    --color-line: #e9e1dd;         /* warm hairline */
+}
+
+/* Base */
+html { scroll-behavior: smooth; }
+
+body {
+    background: var(--color-ivory);
+    color: var(--color-ink);
+}
+
+[dir='rtl'] body,
+.font-arabic {
+    font-family: var(--font-arabic);
+}
+
+::selection {
+    background: var(--color-plum);
+    color: #fff;
+}
+
+/* Elegant serif display helper */
+.font-display {
+    font-family: var(--font-serif);
+    letter-spacing: -0.01em;
+}
+
+/* Subtle image zoom container */
+.img-zoom { transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1); }
+.group:hover .img-zoom { transform: scale(1.05); }
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .img-zoom { transition: none; }
+}
