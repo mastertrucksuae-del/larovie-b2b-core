@@ -2,6 +2,7 @@
 
 namespace App\Services\Shopify;
 
+use App\Models\Brand;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Setting;
@@ -67,6 +68,10 @@ class ProductSyncService
         } while ($cursor !== null);
 
         $this->archiveMissing();
+
+        // Keep the admin-managed brands list in step with the catalogue so a logo
+        // can be uploaded for every brand. Existing logos are preserved.
+        Brand::syncFromProducts();
 
         $setting = Setting::current();
         $setting->last_synced_at = now();

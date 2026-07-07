@@ -92,3 +92,15 @@ tests under `tests/**`; `.env`, `.env.example`, `README.md`.
 - Per-brand sections use Alpine `x-data="{ open }"` + `x-collapse` (confirmed bundled in Livewire dist) with a rotating chevron and `aria-expanded`/`aria-controls`.
 - Added a `no-scrollbar` Tailwind v4 `@utility`.
 **Files modified:** `resources/views/components/⚡catalogue.blade.php`, `resources/css/app.css`, `lang/en/shop.php`, `lang/ar/shop.php`. Assets rebuilt (`npm run build`), views compile clean.
+
+## 2026-07-07 (brand logos + only_full_group_by hotfix)
+**Topics:** Admin-managed brand logos, surfaced in the catalogue brand slider + section headers. Also hotfixed a production 500 on the catalogue.
+**Production hotfix:** `brandNav()`'s grouped query ordered by the raw `coalesce(nullif(brand,""),vendor)` expression, which Forge's MySQL rejected under `ONLY_FULL_GROUP_BY` (error 1055). Changed ORDER BY to use the grouped select aliases (`c desc`, `b is null, b asc`). Local MySQL 8 tolerated the old form (resolves expression equivalence); Forge's stricter MySQL did not — alias ordering is portable to both. Verified locally (only_full_group_by is ON).
+**Feature — brand logos:**
+- New `brands` table (migration `2026_01_06_000001_create_brands_table.php`): `name` (unique) + `logo_path`.
+- New `App\Models\Brand`: `logo_url` accessor (`Storage::disk('public')`), `syncFromProducts()` (upserts a row per distinct effective brand, preserves existing logos), `logoUrlMap()`.
+- New Filament resource `App\Filament\Resources\Brands\*` (Resource/Schemas/BrandForm/Tables/BrandsTable/Pages) mirroring the Products resource conventions (Filament v5). Logo `FileUpload` → `disk('public')` `directory('brands')`. ListBrands has an "Import brands from products" header action. Table shows logo, name, live product count.
+- `ProductSyncService::sync()` now calls `Brand::syncFromProducts()` after archiving, so the brands list stays in step with each Shopify sync (logos preserved).
+- Catalogue `⚡catalogue.blade.php`: `brandNav()` attaches `logo` via `Brand::logoUrlMap()`; slider chips show a small circular logo; section headers show a wordmark logo (h-9). Graceful fallback to text-only when no logo.
+**Deploy note:** run `php artisan migrate` and ensure `storage:link` on the server (public disk) or logos 404.
+**Files:** migration, `app/Models/Brand.php`, `app/Filament/Resources/Brands/**` (7 files), `app/Services/Shopify/ProductSyncService.php`, `resources/views/components/⚡catalogue.blade.php`. Assets rebuilt; brand routes registered; views compile clean.

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Brand;
 use App\Models\Product;
 use App\Services\Cart\CartService;
 use Livewire\Attributes\Computed;
@@ -162,12 +163,16 @@ new class extends Component
     #[Computed]
     public function brandNav(): array
     {
+        // Order by the grouped alias `b` (not the raw coalesce expression) so the
+        // query is valid under MySQL's only_full_group_by mode.
         $rows = $this->filteredQuery()
             ->selectRaw('coalesce(nullif(brand, ""), vendor) as b, count(*) as c')
             ->groupBy('b')
-            ->orderByRaw('count(*) desc')
-            ->orderByRaw('coalesce(nullif(brand, ""), vendor) is null, coalesce(nullif(brand, ""), vendor) asc')
+            ->orderByRaw('c desc')
+            ->orderByRaw('b is null, b asc')
             ->get();
+
+        $logos = Brand::logoUrlMap();
 
         $cursor = 0;
         $nav = [];
@@ -177,6 +182,7 @@ new class extends Component
             $nav[] = [
                 'brand' => $brand,
                 'label' => $brand !== '' ? $brand : __('shop.other'),
+                'logo' => $logos[$brand] ?? null,
                 'count' => $count,
                 'start' => $cursor,
             ];
@@ -250,7 +256,11 @@ new class extends Component
                                 :class="active === {{ $i }}
                                     ? 'bg-plum text-white border-plum shadow-sm'
                                     : 'bg-white text-ink border-line hover:border-plum/50 hover:bg-blush/40'"
-                                class="shrink-0 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer">
+                                class="shrink-0 inline-flex items-center gap-2 rounded-full border py-2 pe-4 whitespace-nowrap transition-colors cursor-pointer {{ empty($b['logo']) ? 'ps-4' : 'ps-2' }} text-sm font-medium">
+                            @if (! empty($b['logo']))
+                                <img src="{{ $b['logo'] }}" alt="" aria-hidden="true"
+                                     class="h-6 w-6 rounded-full object-contain bg-white ring-1 ring-line/70 p-0.5" loading="lazy">
+                            @endif
                             <span>{{ $b['label'] }}</span>
                             <span :class="active === {{ $i }} ? 'bg-white/20 text-white' : 'bg-blush text-rose-deep'"
                                   class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[11px] font-semibold transition-colors">{{ $b['count'] }}</span>
@@ -313,7 +323,7 @@ new class extends Component
                     // Map each brand to its navigation index + true total (across all pages).
                     $navByBrand = [];
                     foreach ($this->brandNav as $i => $b) {
-                        $navByBrand[$b['brand']] = ['index' => $i, 'count' => $b['count']];
+                        $navByBrand[$b['brand']] = ['index' => $i, 'count' => $b['count'], 'logo' => $b['logo'] ?? null];
                     }
                     // Products already arrive ordered contiguously by brand.
                     $groups = $this->products->groupBy(fn ($p) => (string) ($p->effective_brand ?? ''));
@@ -322,6 +332,7 @@ new class extends Component
                     @php
                         $meta = $navByBrand[(string) $brandKey] ?? ['index' => $loop->index, 'count' => $items->count()];
                         $idx = $meta['index'];
+                        $logo = $meta['logo'] ?? null;
                         $label = $brandKey !== '' ? $brandKey : __('shop.other');
                     @endphp
                     <section id="brand-{{ $idx }}" data-brand-index="{{ $idx }}" wire:key="brand-sec-{{ $idx }}"
@@ -337,6 +348,10 @@ new class extends Component
                                      fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                                 </svg>
+                                @if ($logo)
+                                    <img src="{{ $logo }}" alt="{{ $label }}"
+                                         class="h-9 w-auto max-w-28 object-contain shrink-0" loading="lazy">
+                                @endif
                                 <h2 class="font-display text-2xl text-ink whitespace-nowrap group-hover:text-plum transition-colors">{{ $label }}</h2>
                                 <span class="inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full bg-blush text-rose-deep text-xs font-semibold">
                                     {{ $meta['count'] }}
