@@ -108,6 +108,7 @@ class ProductSyncService
             $this->summary['created']++;
             // Sensible defaults for admin fields on first import.
             $product->is_visible = false;
+            $product->moq = (int) config('shopify.default_moq', 12);
             // Auto-detect bundles once, on import; admin can override afterwards.
             $product->is_bundle = \App\Support\BundleDetector::isBundle(
                 $ownedAttributes['title'] ?? null,

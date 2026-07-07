@@ -97,8 +97,9 @@ class ShopifySyncTest extends TestCase
         $product = Product::where('shopify_product_id', 1)->first();
         $variant = ProductVariant::where('shopify_variant_id', 11)->first();
 
-        // New products default to hidden, no price.
+        // New products default to hidden, no price, MOQ 12.
         $this->assertFalse($product->is_visible);
+        $this->assertSame(12, $product->moq);
         $this->assertNull($variant->wholesale_price);
 
         // Admin curates the catalogue.

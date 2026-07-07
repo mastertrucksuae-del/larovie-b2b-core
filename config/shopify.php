@@ -16,6 +16,10 @@ return [
     // Queue the sync job is dispatched onto (falls back to the default queue).
     'queue' => env('SHOPIFY_QUEUE', 'default'),
 
+    // Default minimum order quantity assigned to newly imported products
+    // (admin-owned afterwards; preserved on re-sync).
+    'default_moq' => (int) env('SHOPIFY_DEFAULT_MOQ', 12),
+
     // How many products to request per GraphQL page.
     'page_size' => (int) env('SHOPIFY_PAGE_SIZE', 50),
 
