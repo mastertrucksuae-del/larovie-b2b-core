@@ -81,3 +81,14 @@ made visible). Storefront + admin panels render; **29 feature/unit tests pass**.
 `app/Console/Commands/ShopifySyncCommand`; storefront views under `resources/views/**`
 (incl. ⚡ Livewire SFCs); `lang/{en,ar}/shop.php`; `config/shopify.php`; seeders/factories;
 tests under `tests/**`; `.env`, `.env.example`, `README.md`.
+
+## 2026-07-07 (brand navigation slider)
+**Topics:** Added a brand-navigation slider to the top of the wholesale catalogue + collapsible per-brand sections (reference: qogita.com/brands). Also fixed an unrelated cPanel DNS issue (CNAME vs existing A record for www.wholesale.larovie.com — kept the A record, dropped the CNAME).
+**Decisions:**
+- Brand data has no dedicated model; grouping uses the existing `effective_brand` (brand → vendor fallback) on `products`.
+- New `brandNav()` computed mirrors the product grid's brand ordering (count desc, alpha, "Other" last) and exposes each brand's product count + absolute start index.
+- New `goToBrand(int $index)` Livewire action forces brand sort, bumps `perPage` to load enough pages for the target brand (works with infinite scroll), then dispatches a `brand-jump` browser event; the matching `<section>` expands and smooth-scrolls into view.
+- Slider is a sticky (`top-24`) horizontally-scrollable chip strip; active chip is highlighted via a throttled scroll listener and auto-centered in the strip. RTL-aware (chevron `rtl:-scale-x-100`), bilingual (`shop.brands` added to en/ar).
+- Per-brand sections use Alpine `x-data="{ open }"` + `x-collapse` (confirmed bundled in Livewire dist) with a rotating chevron and `aria-expanded`/`aria-controls`.
+- Added a `no-scrollbar` Tailwind v4 `@utility`.
+**Files modified:** `resources/views/components/⚡catalogue.blade.php`, `resources/css/app.css`, `lang/en/shop.php`, `lang/ar/shop.php`. Assets rebuilt (`npm run build`), views compile clean.

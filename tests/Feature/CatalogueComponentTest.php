@@ -106,7 +106,7 @@ class CatalogueComponentTest extends TestCase
             ->assertDontSee('Cream');
     }
 
-    public function test_brand_counts_reflect_products_per_brand(): void
+    public function test_brand_nav_reflects_products_per_brand(): void
     {
         foreach (range(1, 3) as $i) {
             Product::factory()->create(['title' => "Anua {$i}", 'brand' => 'Anua', 'vendor' => 'x'])
@@ -115,10 +115,12 @@ class CatalogueComponentTest extends TestCase
         Product::factory()->create(['title' => 'Abib 1', 'brand' => 'Abib', 'vendor' => 'x'])
             ->each(fn (Product $p) => ProductVariant::factory()->for($p)->create());
 
-        $counts = Livewire::test('catalogue')->instance()->brandCounts();
+        $nav = collect(Livewire::test('catalogue')->instance()->brandNav());
 
-        $this->assertSame(3, $counts['Anua']);
-        $this->assertSame(1, $counts['Abib']);
+        $this->assertSame(3, $nav->firstWhere('brand', 'Anua')['count']);
+        $this->assertSame(1, $nav->firstWhere('brand', 'Abib')['count']);
+        // Biggest brand leads the navigation.
+        $this->assertSame('Anua', $nav->first()['brand']);
     }
 
     public function test_bundles_are_excluded_from_the_catalogue(): void

@@ -75,6 +75,31 @@ new class extends Component
         $this->perPage = 24;
     }
 
+    /**
+     * Jump to a brand from the navigation strip: force brand grouping, load enough
+     * pages for that brand's products to exist in the DOM, then tell the matching
+     * section (browser-side) to expand and scroll into view.
+     */
+    public function goToBrand(int $index): void
+    {
+        $nav = $this->brandNav;
+
+        if (! array_key_exists($index, $nav)) {
+            return;
+        }
+
+        if ($this->sort !== 'brand') {
+            $this->sort = 'brand';
+        }
+
+        $needed = $nav[$index]['start'] + $nav[$index]['count'];
+        if ($this->perPage < $needed) {
+            $this->perPage = (int) (ceil($needed / 24) * 24);
+        }
+
+        $this->dispatch('brand-jump', index: $index);
+    }
+
     /** Products matching the current search + category filters (no ordering/aggregates). */
     protected function filteredQuery()
     {
@@ -128,16 +153,37 @@ new class extends Component
         return $this->filteredQuery()->count();
     }
 
-    /** Product count per effective brand (respecting the current filters). */
+    /**
+     * Brands in the same order the product grid uses (most products first, then
+     * alphabetical, "Other" last), each with its product count and the absolute
+     * index of its first product in the full ordered list. That start offset lets
+     * goToBrand() load exactly enough pages to reveal the brand before scrolling.
+     */
     #[Computed]
-    public function brandCounts(): array
+    public function brandNav(): array
     {
-        return $this->filteredQuery()
+        $rows = $this->filteredQuery()
             ->selectRaw('coalesce(nullif(brand, ""), vendor) as b, count(*) as c')
             ->groupBy('b')
-            ->pluck('c', 'b')
-            ->mapWithKeys(fn ($c, $b) => [(string) $b => (int) $c])
-            ->all();
+            ->orderByRaw('count(*) desc')
+            ->orderByRaw('coalesce(nullif(brand, ""), vendor) is null, coalesce(nullif(brand, ""), vendor) asc')
+            ->get();
+
+        $cursor = 0;
+        $nav = [];
+        foreach ($rows as $row) {
+            $brand = (string) $row->b;
+            $count = (int) $row->c;
+            $nav[] = [
+                'brand' => $brand,
+                'label' => $brand !== '' ? $brand : __('shop.other'),
+                'count' => $count,
+                'start' => $cursor,
+            ];
+            $cursor += $count;
+        }
+
+        return $nav;
     }
 
     #[Computed]
@@ -176,6 +222,45 @@ new class extends Component
 }; ?>
 
 <div>
+    {{-- Brand navigation slider: a sticky, horizontally-scrollable strip of brand
+         chips that jump to (and expand) the matching brand section on the page. --}}
+    @if (count($this->brandNav) > 1)
+        <div class="sticky top-24 z-30 -mx-4 sm:-mx-6 lg:-mx-8 mb-8 border-b border-line bg-ivory/90 backdrop-blur-md"
+             x-data="{
+                 active: null,
+                 sync() {
+                     const line = 160;
+                     let current = null;
+                     document.querySelectorAll('section[data-brand-index]').forEach(el => {
+                         if (el.getBoundingClientRect().top - line <= 0) current = el.getAttribute('data-brand-index');
+                     });
+                     this.active = current === null ? null : parseInt(current);
+                 }
+             }"
+             x-init="$nextTick(() => sync())"
+             x-effect="active !== null && $refs['chip' + active] && $refs['chip' + active].scrollIntoView({ inline: 'center', block: 'nearest' })"
+             @scroll.window.throttle.100ms="sync()"
+             @resize.window.throttle.150ms="sync()">
+            <div class="flex items-center gap-3 px-4 sm:px-6 lg:px-8 py-3">
+                <span class="hidden sm:block shrink-0 text-xs font-semibold uppercase tracking-[0.15em] text-plum-500/70">{{ __('shop.brands') }}</span>
+                <div class="flex gap-2 overflow-x-auto scroll-smooth no-scrollbar py-0.5 -my-0.5">
+                    @foreach ($this->brandNav as $i => $b)
+                        <button type="button" wire:click="goToBrand({{ $i }})"
+                                x-ref="chip{{ $i }}"
+                                :class="active === {{ $i }}
+                                    ? 'bg-plum text-white border-plum shadow-sm'
+                                    : 'bg-white text-ink border-line hover:border-plum/50 hover:bg-blush/40'"
+                                class="shrink-0 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer">
+                            <span>{{ $b['label'] }}</span>
+                            <span :class="active === {{ $i }} ? 'bg-white/20 text-white' : 'bg-blush text-rose-deep'"
+                                  class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[11px] font-semibold transition-colors">{{ $b['count'] }}</span>
+                        </button>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endif
+
     {{-- Controls: a dominant search bar, with compact filters alongside --}}
     <div class="mb-8 flex flex-col gap-3 lg:flex-row lg:items-center">
         <div class="relative flex-1 lg:min-w-0">
@@ -222,29 +307,50 @@ new class extends Component
             <button wire:click="clearFilters" class="mt-4 text-rose-deep hover:underline cursor-pointer">{{ __('shop.clear_filters') }}</button>
         </div>
     @else
-        @php($grouped = $sort === 'brand')
         <div wire:loading.class="opacity-40" class="transition duration-200">
-            @if ($grouped)
-                @php($currentBrand = '__start__')
-                @foreach ($this->products as $product)
-                    @if ($product->effective_brand !== $currentBrand)
-                        @php($currentBrand = $product->effective_brand)
-                        <div class="flex items-center gap-3 mt-10 mb-5 first:mt-0">
-                            <h2 class="font-display text-2xl text-ink whitespace-nowrap">{{ $currentBrand ?: __('shop.other') }}</h2>
-                            <span class="inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full bg-blush text-rose-deep text-xs font-semibold">
-                                {{ $this->brandCounts[$currentBrand ?: ''] ?? 0 }}
-                            </span>
+            @if ($sort === 'brand')
+                @php
+                    // Map each brand to its navigation index + true total (across all pages).
+                    $navByBrand = [];
+                    foreach ($this->brandNav as $i => $b) {
+                        $navByBrand[$b['brand']] = ['index' => $i, 'count' => $b['count']];
+                    }
+                    // Products already arrive ordered contiguously by brand.
+                    $groups = $this->products->groupBy(fn ($p) => (string) ($p->effective_brand ?? ''));
+                @endphp
+                @foreach ($groups as $brandKey => $items)
+                    @php
+                        $meta = $navByBrand[(string) $brandKey] ?? ['index' => $loop->index, 'count' => $items->count()];
+                        $idx = $meta['index'];
+                        $label = $brandKey !== '' ? $brandKey : __('shop.other');
+                    @endphp
+                    <section id="brand-{{ $idx }}" data-brand-index="{{ $idx }}" wire:key="brand-sec-{{ $idx }}"
+                             x-data="{ open: true }"
+                             x-on:brand-jump.window="if ($event.detail.index === {{ $idx }}) { open = true; $nextTick(() => $el.scrollIntoView({ behavior: 'smooth', block: 'start' })) }"
+                             class="scroll-mt-44">
+                        <div class="flex items-center gap-3 mt-12 mb-5 first:mt-0">
+                            <button type="button" @click="open = !open" :aria-expanded="open"
+                                    aria-controls="brand-grid-{{ $idx }}"
+                                    class="group flex items-center gap-3 cursor-pointer text-start">
+                                <svg class="w-5 h-5 shrink-0 text-plum-500 transition-transform duration-200 rtl:-scale-x-100"
+                                     :class="open ? 'rotate-90' : ''"
+                                     fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                                </svg>
+                                <h2 class="font-display text-2xl text-ink whitespace-nowrap group-hover:text-plum transition-colors">{{ $label }}</h2>
+                                <span class="inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full bg-blush text-rose-deep text-xs font-semibold">
+                                    {{ $meta['count'] }}
+                                </span>
+                            </button>
                             <span class="h-px flex-1 bg-line"></span>
                         </div>
-                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-7">
-                    @endif
-
-                    @include('catalogue.partials.product-card', ['product' => $product])
-
-                    @php($next = $this->products[$loop->index + 1] ?? null)
-                    @if (! $next || $next->effective_brand !== $currentBrand)
+                        <div id="brand-grid-{{ $idx }}" x-show="open" x-collapse
+                             class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-7">
+                            @foreach ($items as $product)
+                                @include('catalogue.partials.product-card', ['product' => $product])
+                            @endforeach
                         </div>
-                    @endif
+                    </section>
                 @endforeach
             @else
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-7">

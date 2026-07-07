@@ -44,6 +44,7 @@ return [
     'sort_stock' => 'Stock',
     'sort_name' => 'Name',
     'clear_filters' => 'Clear filters',
+    'brands' => 'Brands',
     'other' => 'Other',
     'load_more' => 'Load more',
     'loading_more' => 'Loading more…',

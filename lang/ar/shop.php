@@ -44,6 +44,7 @@ return [
     'sort_stock' => 'المخزون',
     'sort_name' => 'الاسم',
     'clear_filters' => 'مسح عوامل التصفية',
+    'brands' => 'العلامات التجارية',
     'other' => 'أخرى',
     'load_more' => 'تحميل المزيد',
     'loading_more' => 'جارٍ تحميل المزيد…',
