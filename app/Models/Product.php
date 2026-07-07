@@ -46,6 +46,14 @@ class Product extends Model
         return filled($this->brand) ? $this->brand : $this->vendor;
     }
 
+    /** Admin image override if uploaded, otherwise the Shopify featured image. */
+    public function getDisplayImageAttribute(): ?string
+    {
+        return filled($this->image_path)
+            ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->image_path)
+            : $this->featured_image_url;
+    }
+
     /** Cheapest wholesale price across visible variants, or null if none priced. */
     public function getStartingPriceAttribute(): ?float
     {

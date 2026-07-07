@@ -5,8 +5,8 @@
 <a href="{{ route('catalogue.show', $product->handle) }}"
    class="group flex flex-col rounded-2xl bg-white ring-1 ring-line overflow-hidden hover:ring-plum/20 hover:shadow-[0_12px_40px_-12px_rgba(62,35,64,0.18)] transition duration-300">
     <div class="relative aspect-square bg-sand overflow-hidden">
-        @if ($product->featured_image_url)
-            <img src="{{ $product->featured_image_url }}" alt="{{ $product->title }}"
+        @if ($product->display_image)
+            <img src="{{ $product->display_image }}" alt="{{ $product->title }}"
                  class="img-zoom h-full w-full object-cover" loading="lazy">
         @endif
         @if ($starting === null)

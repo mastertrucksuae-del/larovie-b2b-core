@@ -3,7 +3,12 @@
 namespace App\Filament\Resources\Products\RelationManagers;
 
 use App\Models\ProductVariant;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\TextInputColumn;
@@ -16,12 +21,39 @@ class VariantsRelationManager extends RelationManager
 
     protected static ?string $title = 'Variants & pricing';
 
+    public function form(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                FileUpload::make('image_path')
+                    ->label('Image override')
+                    ->helperText('Overrides the Shopify variant image. Kept across re-syncs.')
+                    ->image()
+                    ->imageEditor()
+                    ->disk('public')
+                    ->directory('variant-images')
+                    ->maxSize(4096)
+                    ->columnSpanFull(),
+                TextInput::make('wholesale_price')
+                    ->label('Wholesale price')
+                    ->numeric()
+                    ->minValue(0)
+                    ->placeholder('Price on request'),
+                TextInput::make('moq')
+                    ->label('MOQ')
+                    ->numeric()
+                    ->minValue(1),
+                Toggle::make('is_visible')
+                    ->label('Visible in catalogue'),
+            ]);
+    }
+
     public function table(Table $table): Table
     {
         return $table
             ->recordTitleAttribute('title')
             ->columns([
-                ImageColumn::make('image_url')
+                ImageColumn::make('display_image')
                     ->label('')
                     ->height(40)
                     ->square(),
@@ -47,9 +79,12 @@ class VariantsRelationManager extends RelationManager
                 ToggleColumn::make('is_visible')
                     ->label('Visible'),
             ])
-            // Shopify owns variants — no create/associate/delete from the panel.
+            // Shopify owns variants — no create/associate/delete, but the admin can
+            // edit the image, price, MOQ and visibility.
             ->headerActions([])
-            ->recordActions([])
+            ->recordActions([
+                EditAction::make()->label('Edit image / details'),
+            ])
             ->toolbarActions([]);
     }
 }

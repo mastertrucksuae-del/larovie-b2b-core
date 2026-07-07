@@ -42,7 +42,7 @@ class CreateInquiry
                     'product_title' => $variant->product?->title ?? '',
                     'variant_title' => $variant->title,
                     'sku' => $variant->sku,
-                    'image_url' => $variant->image_url ?? $variant->product?->featured_image_url,
+                    'image_url' => $variant->display_image,
                     'quantity' => $item['quantity'],
                     // Prices are filled by the admin during "responding".
                     'unit_price' => null,

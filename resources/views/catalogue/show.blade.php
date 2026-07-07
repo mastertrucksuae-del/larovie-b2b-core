@@ -17,11 +17,11 @@
         {{-- Gallery --}}
         <div>
             <div class="aspect-square rounded-3xl bg-sand overflow-hidden ring-1 ring-line">
-                @if ($product->featured_image_url)
-                    <img src="{{ $product->featured_image_url }}" alt="{{ $product->title }}" class="h-full w-full object-cover">
+                @if ($product->display_image)
+                    <img src="{{ $product->display_image }}" alt="{{ $product->title }}" class="h-full w-full object-cover">
                 @endif
             </div>
-            @php($thumbs = $product->variants->pluck('image_url')->filter()->unique()->take(5))
+            @php($thumbs = $product->variants->map->display_image->filter()->unique()->take(5))
             @if ($thumbs->count() > 1)
                 <div class="mt-4 grid grid-cols-5 gap-3">
                     @foreach ($thumbs as $thumb)

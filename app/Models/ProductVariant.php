@@ -41,6 +41,16 @@ class ProductVariant extends Model
         return $this->wholesale_price !== null;
     }
 
+    /** Admin image override if uploaded, else the Shopify variant image, else the product image. */
+    public function getDisplayImageAttribute(): ?string
+    {
+        if (filled($this->image_path)) {
+            return \Illuminate\Support\Facades\Storage::disk('public')->url($this->image_path);
+        }
+
+        return $this->image_url ?: $this->product?->display_image;
+    }
+
     /** Human label combining product + variant title. */
     public function getDisplayNameAttribute(): string
     {

@@ -2,11 +2,14 @@
 
 namespace App\Filament\Resources\Products\Schemas;
 
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Support\HtmlString;
 
 class ProductForm
 {
@@ -30,6 +33,24 @@ class ProductForm
                             ->numeric()
                             ->minValue(1)
                             ->columnSpanFull(),
+                    ]),
+
+                Section::make('Product image')
+                    ->description('Upload to override the Shopify image (kept across re-syncs). Leave empty to use the Shopify image.')
+                    ->columns(2)
+                    ->schema([
+                        FileUpload::make('image_path')
+                            ->label('Image override')
+                            ->image()
+                            ->imageEditor()
+                            ->disk('public')
+                            ->directory('product-images')
+                            ->maxSize(4096),
+                        Placeholder::make('shopify_image')
+                            ->label('Current Shopify image')
+                            ->content(fn ($record) => $record?->featured_image_url
+                                ? new HtmlString('<img src="'.e($record->featured_image_url).'" style="height:120px;border-radius:8px;object-fit:cover;">')
+                                : '—'),
                     ]),
 
                 Section::make('Shopify data (read-only)')

@@ -86,7 +86,7 @@ new class extends Component
                 @foreach ($this->items as $item)
                     @php($variant = $item['variant'])
                     <li class="flex gap-4 py-4" wire:key="drawer-{{ $variant->id }}">
-                        <img src="{{ $variant->image_url ?? $variant->product?->featured_image_url }}" alt=""
+                        <img src="{{ $variant->display_image }}" alt=""
                              class="h-20 w-20 rounded-xl object-cover bg-sand shrink-0">
                         <div class="flex-1 min-w-0">
                             <p class="font-medium text-ink leading-snug line-clamp-2">{{ $variant->product?->title }}</p>

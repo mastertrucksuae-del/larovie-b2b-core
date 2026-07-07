@@ -6,6 +6,8 @@ use App\Models\Product;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -22,7 +24,7 @@ class ProductsTable
     {
         return $table
             ->columns([
-                ImageColumn::make('featured_image_url')
+                ImageColumn::make('display_image')
                     ->label('')
                     ->height(44)
                     ->square(),
@@ -82,6 +84,55 @@ class ProductsTable
                 EditAction::make(),
             ])
             ->toolbarActions([
+                BulkAction::make('bulkEdit')
+                    ->label('Bulk edit')
+                    ->icon('heroicon-o-pencil-square')
+                    ->color('primary')
+                    ->schema([
+                        Select::make('is_visible')
+                            ->label('Visibility')
+                            ->options(['keep' => 'No change', '1' => 'Visible', '0' => 'Hidden'])
+                            ->default('keep'),
+                        Select::make('is_bundle')
+                            ->label('Bundle')
+                            ->options(['keep' => 'No change', '1' => 'Mark as bundle', '0' => 'Not a bundle'])
+                            ->default('keep'),
+                        TextInput::make('moq')
+                            ->label('Set MOQ')
+                            ->helperText('Leave blank to keep each product’s MOQ.')
+                            ->numeric()
+                            ->minValue(1),
+                        TextInput::make('wholesale_price')
+                            ->label('Set wholesale price on ALL variants')
+                            ->helperText('Leave blank to keep existing variant prices.')
+                            ->numeric()
+                            ->minValue(0),
+                    ])
+                    ->action(function (array $data, Collection $records) {
+                        $visible = (string) ($data['is_visible'] ?? 'keep');
+                        $bundle = (string) ($data['is_bundle'] ?? 'keep');
+
+                        foreach ($records as $product) {
+                            $updates = [];
+                            if ($visible !== 'keep') {
+                                $updates['is_visible'] = $visible === '1';
+                            }
+                            if ($bundle !== 'keep') {
+                                $updates['is_bundle'] = $bundle === '1';
+                            }
+                            if (filled($data['moq'] ?? null)) {
+                                $updates['moq'] = (int) $data['moq'];
+                            }
+                            if ($updates) {
+                                $product->update($updates);
+                            }
+                            if (filled($data['wholesale_price'] ?? null)) {
+                                $product->variants()->update(['wholesale_price' => (float) $data['wholesale_price']]);
+                            }
+                        }
+                    })
+                    ->deselectRecordsAfterCompletion()
+                    ->successNotificationTitle('Products updated'),
                 BulkActionGroup::make([
                     BulkAction::make('show')
                         ->label('Make visible')
