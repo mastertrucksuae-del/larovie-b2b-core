@@ -7,6 +7,7 @@ use App\Models\InquiryItem;
 use App\Models\Setting;
 use App\Services\Quote\QuoteService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -81,6 +82,7 @@ class QuoteTest extends TestCase
 
     public function test_generate_pdf_assigns_quote_number_and_stores_file(): void
     {
+        Http::fake(['*' => Http::response('fake-image-bytes', 200, ['Content-Type' => 'image/jpeg'])]);
         Storage::fake('local');
         $inquiry = $this->inquiryWithPricedItems();
 
@@ -93,8 +95,22 @@ class QuoteTest extends TestCase
         Storage::disk('local')->assertExists($path);
     }
 
+    public function test_purchase_order_generates_pdf_without_customer_name(): void
+    {
+        Http::fake(['*' => Http::response('fake-image-bytes', 200, ['Content-Type' => 'image/jpeg'])]);
+        $inquiry = $this->inquiryWithPricedItems();
+        $inquiry->update(['customer_name' => 'Very Secret Buyer LLC']);
+
+        $response = app(QuoteService::class)->purchaseOrderResponse($inquiry);
+
+        $this->assertSame('application/pdf', $response->headers->get('Content-Type'));
+        // Supplier PO must not leak the customer identity into the document.
+        $this->assertStringNotContainsString('Very Secret Buyer LLC', $response->getContent());
+    }
+
     public function test_signed_quote_route_serves_pdf(): void
     {
+        Http::fake(['*' => Http::response('fake-image-bytes', 200, ['Content-Type' => 'image/jpeg'])]);
         $inquiry = $this->inquiryWithPricedItems();
 
         $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(

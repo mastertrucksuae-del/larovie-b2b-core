@@ -5,7 +5,10 @@ namespace App\Services\Quote;
 use App\Models\Inquiry;
 use App\Models\Setting;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class QuoteService
@@ -40,16 +43,11 @@ class QuoteService
     }
 
     /**
-     * Render + store the branded PDF quote. Returns the storage path.
+     * Render + store the branded customer quote PDF. Returns the storage path.
      */
     public function generatePdf(Inquiry $inquiry): string
     {
-        $this->prepare($inquiry);
-
-        $pdf = Pdf::loadView('quotes.pdf', [
-            'inquiry' => $inquiry,
-            'settings' => Setting::current(),
-        ])->setPaper('a4');
+        $pdf = $this->renderPdf($inquiry, isPurchaseOrder: false);
 
         $path = "quotes/{$inquiry->reference}.pdf";
         Storage::disk('local')->put($path, $pdf->output());
@@ -58,6 +56,90 @@ class QuoteService
         $inquiry->save();
 
         return $path;
+    }
+
+    /**
+     * Build the supplier purchase order — the same document as the customer
+     * quote, minus the customer identity — and return it as an inline download.
+     */
+    public function purchaseOrderResponse(Inquiry $inquiry): Response
+    {
+        $pdf = $this->renderPdf($inquiry, isPurchaseOrder: true);
+
+        return response($pdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="purchase-order-'.$inquiry->reference.'.pdf"',
+        ]);
+    }
+
+    /** Shared DomPDF renderer for both the customer quote and the supplier PO. */
+    private function renderPdf(Inquiry $inquiry, bool $isPurchaseOrder): \Barryvdh\DomPDF\PDF
+    {
+        $this->prepare($inquiry);
+
+        return Pdf::loadView('quotes.pdf', [
+            'inquiry' => $inquiry,
+            'settings' => Setting::current(),
+            'isPurchaseOrder' => $isPurchaseOrder,
+            'images' => $this->embedLineImages($inquiry),
+        ])->setPaper('a4');
+    }
+
+    /**
+     * Resolve each line item's featured image to a base64 data URI, keyed by
+     * item id. DomPDF has remote fetching disabled, so images (local admin
+     * overrides or Shopify CDN URLs) are inlined here. Failures degrade to no
+     * image rather than breaking the PDF.
+     *
+     * @return array<int, string>
+     */
+    private function embedLineImages(Inquiry $inquiry): array
+    {
+        $images = [];
+
+        foreach ($inquiry->items as $item) {
+            $uri = $this->imageDataUri($item->image_url);
+            if ($uri !== null) {
+                $images[$item->id] = $uri;
+            }
+        }
+
+        return $images;
+    }
+
+    private function imageDataUri(?string $url): ?string
+    {
+        if (blank($url)) {
+            return null;
+        }
+
+        try {
+            // Admin override images live on the public disk (…/storage/…) — read
+            // straight off disk instead of round-tripping through HTTP.
+            if (str_contains($url, '/storage/')) {
+                $relative = ltrim(Str::after($url, '/storage/'), '/');
+
+                if (Storage::disk('public')->exists($relative)) {
+                    $mime = Storage::disk('public')->mimeType($relative) ?: 'image/jpeg';
+
+                    return 'data:'.$mime.';base64,'.base64_encode(Storage::disk('public')->get($relative));
+                }
+            }
+
+            if (Str::startsWith($url, ['http://', 'https://'])) {
+                $response = Http::timeout(8)->get($url);
+
+                if ($response->successful()) {
+                    $mime = $response->header('Content-Type') ?: 'image/jpeg';
+
+                    return 'data:'.$mime.';base64,'.base64_encode($response->body());
+                }
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return null;
     }
 
     /** Streamed CSV download of the quote line items + meta. */

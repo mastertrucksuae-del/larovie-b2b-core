@@ -43,6 +43,12 @@ class EditInquiry extends EditRecord
                         ->send();
                 }),
 
+            Action::make('purchaseOrder')
+                ->label('Purchase order (PDF)')
+                ->icon('heroicon-o-clipboard-document-list')
+                ->color('gray')
+                ->action(fn (QuoteService $quotes) => $quotes->purchaseOrderResponse($this->getRecord())),
+
             Action::make('exportCsv')
                 ->label('Export CSV')
                 ->icon('heroicon-o-table-cells')

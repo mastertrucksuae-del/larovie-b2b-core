@@ -1,5 +1,21 @@
 # Larovie B2B Wholesale Catalogue — Session Log
 
+## 2026-07-09
+**Topics:** Added a "Purchase order (PDF)" header action on the inquiry edit page — the
+same document as the customer quote but retitled "Purchase Order" with the customer
+"Prepared for" block omitted (no name). Added the product featured image as the first
+column of the line-item table on both the customer quote and the supplier PO. Images are
+inlined as base64 data URIs in `QuoteService` (local public-disk overrides read off disk,
+remote Shopify CDN URLs fetched via HTTP with an 8s timeout) since DomPDF has remote
+fetching disabled; failures degrade to no image.
+**Decisions:** Parametrized the single `quotes/pdf.blade.php` view with `$isPurchaseOrder`
++ `$images` rather than duplicating the template. The PO streams as an inline download and
+is not persisted (no new DB column). Faked HTTP in the PDF tests (factory uses a live
+picsum URL) so the suite stays offline; added a PO test asserting the customer name is
+absent.
+**Files modified:** app/Services/Quote/QuoteService.php, resources/views/quotes/pdf.blade.php,
+app/Filament/Resources/Inquiries/Pages/EditInquiry.php, tests/Feature/QuoteTest.php
+
 ## 2026-07-07
 **Topics:** Built the Larovie B2B wholesale catalogue MVP end-to-end from the build prompt.
 Scaffolded a fresh Laravel 13 app (Filament v5, Livewire 3, Tailwind v4) on MySQL/MariaDB

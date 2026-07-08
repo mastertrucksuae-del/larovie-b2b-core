@@ -1,4 +1,6 @@
 @php
+    $isPurchaseOrder = $isPurchaseOrder ?? false;
+    $images = $images ?? [];
     $rtl = $inquiry->locale === 'ar';
     $ar = fn ($en, $arText) => $rtl ? $arText : $en;
     $brand = $settings->brand_color ?: '#B76E79';
@@ -69,10 +71,10 @@
                     @endif
                 </td>
                 <td style="width:40%; text-align:{{ $rtl ? 'left' : 'right' }};">
-                    <div class="doc-title">{{ $ar('Quotation', 'عرض سعر') }}</div>
+                    <div class="doc-title">{{ $isPurchaseOrder ? $ar('Purchase Order', 'أمر شراء') : $ar('Quotation', 'عرض سعر') }}</div>
                     <table class="meta" style="margin-top:8px; width:100%;">
                         <tr>
-                            <td class="muted">{{ $ar('Quote No.', 'رقم العرض') }}</td>
+                            <td class="muted">{{ $isPurchaseOrder ? $ar('PO No.', 'رقم الأمر') : $ar('Quote No.', 'رقم العرض') }}</td>
                             <td style="text-align:{{ $rtl ? 'left' : 'right' }};"><strong>{{ $inquiry->quote_number }}</strong></td>
                         </tr>
                         <tr>
@@ -93,17 +95,20 @@
         </table>
     </div>
 
-    <div class="section-title">{{ $ar('Prepared for', 'مُعدّ لـ') }}</div>
-    <div style="margin-bottom:16px;">
-        <strong>{{ $inquiry->customer_name }}</strong><br>
-        @if ($inquiry->customer_company){{ $inquiry->customer_company }}<br>@endif
-        <span class="muted">{{ $inquiry->customer_mobile }}</span>
-        @if ($inquiry->customer_email)<span class="muted"> · {{ $inquiry->customer_email }}</span>@endif
-    </div>
+    @unless ($isPurchaseOrder)
+        <div class="section-title">{{ $ar('Prepared for', 'مُعدّ لـ') }}</div>
+        <div style="margin-bottom:16px;">
+            <strong>{{ $inquiry->customer_name }}</strong><br>
+            @if ($inquiry->customer_company){{ $inquiry->customer_company }}<br>@endif
+            <span class="muted">{{ $inquiry->customer_mobile }}</span>
+            @if ($inquiry->customer_email)<span class="muted"> · {{ $inquiry->customer_email }}</span>@endif
+        </div>
+    @endunless
 
     <table class="items">
         <thead>
             <tr>
+                <th style="width:52px;">{{ $ar('Image', 'الصورة') }}</th>
                 <th>{{ $ar('Product', 'المنتج') }}</th>
                 <th>{{ $ar('SKU', 'الرمز') }}</th>
                 <th class="num">{{ $ar('Qty', 'الكمية') }}</th>
@@ -114,6 +119,11 @@
         <tbody>
             @foreach ($inquiry->items as $item)
                 <tr>
+                    <td style="width:52px; text-align:center;">
+                        @if (! empty($images[$item->id]))
+                            <img src="{{ $images[$item->id] }}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;" alt="">
+                        @endif
+                    </td>
                     <td>
                         {{ $item->product_title }}
                         @if ($item->variant_title)<br><span class="muted">{{ $item->variant_title }}</span>@endif
