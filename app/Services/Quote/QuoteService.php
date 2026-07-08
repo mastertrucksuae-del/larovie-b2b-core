@@ -8,7 +8,6 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class QuoteService
@@ -60,15 +59,21 @@ class QuoteService
 
     /**
      * Build the supplier purchase order — the same document as the customer
-     * quote, minus the customer identity — and return it as an inline download.
+     * quote, minus the customer identity — and return it as a download.
+     *
+     * Streamed (not a plain Response) so Livewire treats it as a file download
+     * instead of trying to json_encode the binary PDF body into its payload.
      */
-    public function purchaseOrderResponse(Inquiry $inquiry): Response
+    public function purchaseOrderResponse(Inquiry $inquiry): StreamedResponse
     {
         $pdf = $this->renderPdf($inquiry, isPurchaseOrder: true);
+        $output = $pdf->output();
+        $filename = "purchase-order-{$inquiry->reference}.pdf";
 
-        return response($pdf->output(), 200, [
+        return response()->streamDownload(function () use ($output) {
+            echo $output;
+        }, $filename, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="purchase-order-'.$inquiry->reference.'.pdf"',
         ]);
     }
 

@@ -16,6 +16,13 @@ absent.
 **Files modified:** app/Services/Quote/QuoteService.php, resources/views/quotes/pdf.blade.php,
 app/Filament/Resources/Inquiries/Pages/EditInquiry.php, tests/Feature/QuoteTest.php
 
+**Fix (same day):** Production hit "Malformed UTF-8 characters" on the Livewire update when
+opening the PO action. Cause: `purchaseOrderResponse()` returned a plain `Response` with a
+binary PDF body, which Livewire tried to json_encode into its payload. Fixed by returning a
+`StreamedResponse` via `response()->streamDownload()` (same pattern as the CSV export) so
+Livewire handles it as a file download. Updated the PO test to capture streamed output and
+assert a valid `%PDF` header.
+
 ## 2026-07-07
 **Topics:** Built the Larovie B2B wholesale catalogue MVP end-to-end from the build prompt.
 Scaffolded a fresh Laravel 13 app (Filament v5, Livewire 3, Tailwind v4) on MySQL/MariaDB

@@ -104,8 +104,15 @@ class QuoteTest extends TestCase
         $response = app(QuoteService::class)->purchaseOrderResponse($inquiry);
 
         $this->assertSame('application/pdf', $response->headers->get('Content-Type'));
+
+        // StreamedResponse writes to the output buffer — capture it to inspect.
+        ob_start();
+        $response->sendContent();
+        $content = ob_get_clean();
+
+        $this->assertStringStartsWith('%PDF', $content);
         // Supplier PO must not leak the customer identity into the document.
-        $this->assertStringNotContainsString('Very Secret Buyer LLC', $response->getContent());
+        $this->assertStringNotContainsString('Very Secret Buyer LLC', $content);
     }
 
     public function test_signed_quote_route_serves_pdf(): void
