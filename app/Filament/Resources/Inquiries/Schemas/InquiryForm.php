@@ -166,9 +166,9 @@ class InquiryForm
                         $name = e($record->product_title)
                             .($record->display_variant_title ? ' <span class="text-gray-500">— '.e($record->display_variant_title).'</span>' : '');
 
-                        // SKU at the end, bold and clearly separated from the name.
+                        // SKU at the end, e.g. "… - #LAR167", bold and separated.
                         $sku = $record->sku
-                            ? '<span class="ms-3 font-mono font-bold text-gray-700 dark:text-gray-200">'.e($record->sku).'</span>'
+                            ? ' - <span class="font-mono font-bold text-gray-700 dark:text-gray-200">#'.e($record->sku).'</span>'
                             : '';
 
                         return new \Illuminate\Support\HtmlString(
