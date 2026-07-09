@@ -126,7 +126,7 @@
                     </td>
                     <td>
                         {{ $item->product_title }}
-                        @if ($item->variant_title)<br><span class="muted">{{ $item->variant_title }}</span>@endif
+                        @if ($item->display_variant_title)<br><span class="muted">{{ $item->display_variant_title }}</span>@endif
                     </td>
                     <td class="muted">{{ $item->sku }}</td>
                     <td class="num">{{ $item->quantity }}</td>

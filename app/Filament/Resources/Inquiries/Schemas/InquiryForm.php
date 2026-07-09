@@ -164,7 +164,7 @@ class InquiryForm
                         }
 
                         $name = e($record->product_title)
-                            .($record->variant_title ? ' <span class="text-gray-500">— '.e($record->variant_title).'</span>' : '');
+                            .($record->display_variant_title ? ' <span class="text-gray-500">— '.e($record->display_variant_title).'</span>' : '');
 
                         // SKU at the end, bold and clearly separated from the name.
                         $sku = $record->sku

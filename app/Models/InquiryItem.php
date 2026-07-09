@@ -27,4 +27,12 @@ class InquiryItem extends Model
     {
         return $this->belongsTo(ProductVariant::class, 'product_variant_id');
     }
+
+    /** Variant title for display — hides Shopify's "Default Title" placeholder. */
+    public function getDisplayVariantTitleAttribute(): ?string
+    {
+        return ($this->variant_title && $this->variant_title !== 'Default Title')
+            ? $this->variant_title
+            : null;
+    }
 }
