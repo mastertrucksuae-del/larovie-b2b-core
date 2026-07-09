@@ -163,19 +163,16 @@ class InquiryForm
                             return '—';
                         }
 
-                        // SKU first, as a distinct badge, so it never runs into the title.
+                        $name = e($record->product_title)
+                            .($record->variant_title ? ' <span class="text-gray-500">— '.e($record->variant_title).'</span>' : '');
+
+                        // SKU at the end, bold and clearly separated from the name.
                         $sku = $record->sku
-                            ? '<span class="inline-block rounded-md bg-gray-100 px-2 py-0.5 font-mono text-xs font-semibold tracking-wide text-gray-600 dark:bg-white/10 dark:text-gray-300">'
-                                .e($record->sku).'</span> '
+                            ? '<span class="ms-3 font-mono font-bold text-gray-700 dark:text-gray-200">'.e($record->sku).'</span>'
                             : '';
 
-                        $name = '<span class="text-base font-medium text-gray-950 dark:text-white">'
-                            .e($record->product_title)
-                            .($record->variant_title ? ' <span class="text-gray-500">— '.e($record->variant_title).'</span>' : '')
-                            .'</span>';
-
                         return new \Illuminate\Support\HtmlString(
-                            '<span class="inline-flex items-center gap-2">'.$sku.$name.'</span>'
+                            '<span class="text-base font-medium text-gray-950 dark:text-white">'.$name.$sku.'</span>'
                         );
                     }),
                 TextInput::make('quantity')
