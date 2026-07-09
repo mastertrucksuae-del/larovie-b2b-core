@@ -158,13 +158,26 @@ class InquiryForm
                 Placeholder::make('product')
                     ->hiddenLabel()
                     ->columnSpanFull()
-                    ->content(fn ($record) => $record
-                        ? new \Illuminate\Support\HtmlString('<span class="text-base font-medium text-gray-950 dark:text-white">'
+                    ->content(function ($record) {
+                        if (! $record) {
+                            return '—';
+                        }
+
+                        // SKU first, as a distinct badge, so it never runs into the title.
+                        $sku = $record->sku
+                            ? '<span class="inline-block rounded-md bg-gray-100 px-2 py-0.5 font-mono text-xs font-semibold tracking-wide text-gray-600 dark:bg-white/10 dark:text-gray-300">'
+                                .e($record->sku).'</span> '
+                            : '';
+
+                        $name = '<span class="text-base font-medium text-gray-950 dark:text-white">'
                             .e($record->product_title)
                             .($record->variant_title ? ' <span class="text-gray-500">— '.e($record->variant_title).'</span>' : '')
-                            .($record->sku ? '<span class="text-xs text-gray-400 ms-2">'.e($record->sku).'</span>' : '')
-                            .'</span>')
-                        : '—'),
+                            .'</span>';
+
+                        return new \Illuminate\Support\HtmlString(
+                            '<span class="inline-flex items-center gap-2">'.$sku.$name.'</span>'
+                        );
+                    }),
                 TextInput::make('quantity')
                     ->label('Quantity')
                     ->numeric()

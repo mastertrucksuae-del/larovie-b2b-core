@@ -16,6 +16,11 @@ absent.
 **Files modified:** app/Services/Quote/QuoteService.php, resources/views/quotes/pdf.blade.php,
 app/Filament/Resources/Inquiries/Pages/EditInquiry.php, tests/Feature/QuoteTest.php
 
+**Tweak (same day):** On the inquiry edit form, the line-item SKU was tacked onto the end of
+the product/variant name and ran straight into it ("Default TitleLAR167"). Moved the SKU to
+the front of the row as a distinct monospace badge (InquiryForm `itemsRepeater` product
+placeholder).
+
 **Fix (same day):** Production hit "Malformed UTF-8 characters" on the Livewire update when
 opening the PO action. Cause: `purchaseOrderResponse()` returned a plain `Response` with a
 binary PDF body, which Livewire tried to json_encode into its payload. Fixed by returning a
