@@ -66,6 +66,7 @@ class EditInquiry extends EditRecord
                     $quotes->generatePdf($inquiry);
 
                     $inquiry->status = Inquiry::STATUS_QUOTE_SENT;
+                    $inquiry->stampPipeline(Inquiry::STATUS_QUOTE_SENT);
                     $inquiry->save();
 
                     $this->refreshFormData(['status', 'quote_number', 'quote_valid_until', 'quoted_total']);
@@ -97,9 +98,10 @@ class EditInquiry extends EditRecord
 
         $inquiry = $this->getRecord();
         $inquiry->status = $status;
+        $inquiry->stampPipeline($status);
         $inquiry->save();
 
-        $this->refreshFormData(['status']);
+        $this->refreshFormData(['status', 'quote_sent_at', 'order_confirmed_at']);
 
         Notification::make()
             ->title('Moved to "'.Inquiry::STATUSES[$status].'"')

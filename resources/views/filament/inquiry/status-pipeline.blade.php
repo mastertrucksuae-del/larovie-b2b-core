@@ -9,10 +9,11 @@
 
     // Each stage owns a colour.
     $colors = [
-        'new_inquiry'   => '#f59e0b', // amber
-        'responding'    => '#0ea5e9', // sky
-        'prices_filled' => '#8b5cf6', // violet
-        'quote_sent'    => '#10b981', // emerald
+        'new_inquiry'    => '#f59e0b', // amber
+        'responding'     => '#0ea5e9', // sky
+        'prices_filled'  => '#8b5cf6', // violet
+        'quote_sent'     => '#10b981', // emerald
+        'order_confirmed' => '#059669', // deep emerald
     ];
     $count = count($statuses);
 @endphp

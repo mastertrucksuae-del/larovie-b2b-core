@@ -81,6 +81,13 @@
                                   class="w-full rounded-xl border border-line bg-ivory px-4 py-2.5 text-ink focus:border-plum focus:ring-2 focus:ring-plum/15 focus:bg-white transition">{{ old('customer_message') }}</textarea>
                     </div>
 
+                    <div>
+                        <label class="block text-sm font-medium text-ink mb-1.5">{{ __('shop.referral_code') }}</label>
+                        <input type="text" name="referral_code" value="{{ old('referral_code', request('code')) }}"
+                               class="w-full rounded-xl border border-line bg-ivory px-4 py-2.5 text-ink focus:border-plum focus:ring-2 focus:ring-plum/15 focus:bg-white transition">
+                        <p class="mt-1 text-xs text-plum-500">{{ __('shop.referral_code_hint') }}</p>
+                    </div>
+
                     <button type="submit"
                             class="w-full rounded-full bg-plum px-6 py-3.5 text-white font-medium hover:bg-plum-800 transition">
                         {{ __('shop.submit_inquiry') }}

@@ -8,6 +8,7 @@ use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
@@ -41,6 +42,9 @@ class ManageSettings extends Page
                     ->columns(2)
                     ->schema([
                         TextInput::make('company_name')->required(),
+                        TextInput::make('legal_entity_name')
+                            ->label('Registered legal entity name')
+                            ->helperText('Shown in the footer & Contact page for buyer credibility.'),
                         ColorPicker::make('brand_color'),
                         FileUpload::make('logo_path')
                             ->label('Logo')
@@ -49,9 +53,54 @@ class ManageSettings extends Page
                             ->directory('branding')
                             ->columnSpanFull(),
                         TextInput::make('company_email')->email(),
-                        TextInput::make('company_phone'),
+                        TextInput::make('company_phone')->label('Phone (tap-to-call)'),
+                        TextInput::make('company_whatsapp')
+                            ->label('WhatsApp Business number')
+                            ->helperText('Used for the wa.me tap-to-chat links. Falls back to phone if empty.'),
                         Textarea::make('company_address')->rows(2)->columnSpanFull(),
                         TextInput::make('trn')->label('Tax registration number (TRN)'),
+                        TextInput::make('trade_licence_number')->label('Trade licence number'),
+                    ]),
+
+                Section::make('Contact & location')
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make('contact_hours')
+                            ->label('Business hours')
+                            ->placeholder('Sun–Thu, 9am–6pm GST')
+                            ->columnSpanFull(),
+                        Textarea::make('google_maps_embed')
+                            ->label('Google Maps embed URL')
+                            ->helperText('The map "src" URL from Google Maps → Share → Embed a map. Rendered on the Contact page.')
+                            ->rows(2)
+                            ->columnSpanFull(),
+                    ]),
+
+                Section::make('Authenticity guarantee')
+                    ->description('Founder-approved copy for the Authenticity page. State only what is verifiably true.')
+                    ->schema([
+                        Textarea::make('authenticity_statement_en')->label('English')->rows(4),
+                        Textarea::make('authenticity_statement_ar')->label('Arabic')->rows(4),
+                    ]),
+
+                Section::make('Measurement & notifications')
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make('notification_email')
+                            ->label('New-inquiry alert email')
+                            ->email()
+                            ->helperText('Instant email on every new inquiry. Falls back to the company email.'),
+                        TextInput::make('ga4_measurement_id')
+                            ->label('GA4 Measurement ID')
+                            ->placeholder('G-XXXXXXXXXX')
+                            ->helperText('The gtag.js snippet only loads when this is set.'),
+                    ]),
+
+                Section::make('Search indexing')
+                    ->description('Keep OFF until the trust & contact pages are live and founder-approved. When ON, the storefront becomes indexable and appears in the sitemap.')
+                    ->schema([
+                        Toggle::make('search_indexing_enabled')
+                            ->label('Allow search engines to index the storefront'),
                     ]),
 
                 Section::make('Quote configuration')

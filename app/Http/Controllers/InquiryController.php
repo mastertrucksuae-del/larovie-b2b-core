@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\CreateInquiry;
 use App\Models\Inquiry;
 use App\Services\Cart\CartService;
+use App\Support\Attribution;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -38,11 +39,16 @@ class InquiryController extends Controller
             'customer_email' => ['nullable', 'email', 'max:255'],
             'customer_company' => ['nullable', 'string', 'max:255'],
             'customer_message' => ['nullable', 'string', 'max:2000'],
+            'referral_code' => ['nullable', 'string', 'max:60'],
         ]);
 
         $data['is_whatsapp'] = $request->boolean('is_whatsapp');
 
-        $inquiry = $createInquiry->handle($data, $cart, app()->getLocale());
+        $attribution = array_merge(Attribution::all(), [
+            'referral_code' => $data['referral_code'] ?? null,
+        ]);
+
+        $inquiry = $createInquiry->handle($data, $cart, app()->getLocale(), $attribution);
 
         $cart->clear();
 

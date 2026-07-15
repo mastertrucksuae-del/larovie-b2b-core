@@ -9,6 +9,8 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class InquiryStats extends StatsOverviewWidget
 {
+    protected static ?int $sort = -6;
+
     protected ?string $pollingInterval = null;
 
     protected function getStats(): array

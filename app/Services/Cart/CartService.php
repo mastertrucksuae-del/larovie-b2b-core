@@ -4,24 +4,74 @@ namespace App\Services\Cart;
 
 use App\Models\ProductVariant;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cookie;
 
 /**
- * Session-backed inquiry cart (no login). Stores only variant id + quantity;
- * live product data is resolved on read, and snapshotted at submission time.
+ * Inquiry cart (no login). Stores only variant id + quantity; live product data
+ * is resolved on read and snapshotted at submission time.
+ *
+ * Persistence (P1 #11): the session is the within-request store, backed by a
+ * 30-day cookie so the cart survives session expiry and browser restarts. When
+ * a fresh session has no cart, it rehydrates from the cookie.
  */
 class CartService
 {
     protected const SESSION_KEY = 'inquiry_cart';
 
+    protected const COOKIE_KEY = 'inquiry_cart';
+
+    protected const COOKIE_MINUTES = 60 * 24 * 30; // 30 days
+
+    /** Cap distinct lines so the cart can never overflow the ~4KB cookie. */
+    protected const MAX_LINES = 150;
+
     /** @return array<int,int> variantId => quantity */
     protected function raw(): array
     {
-        return session()->get(self::SESSION_KEY, []);
+        $session = session()->get(self::SESSION_KEY);
+
+        if ($session === null) {
+            // Fresh/expired session — rehydrate from the durable cookie.
+            $cookie = $this->fromCookie();
+            if (! empty($cookie)) {
+                session()->put(self::SESSION_KEY, $cookie);
+            }
+
+            return $cookie;
+        }
+
+        return $session;
+    }
+
+    /** @return array<int,int> */
+    protected function fromCookie(): array
+    {
+        $raw = request()->cookie(self::COOKIE_KEY);
+
+        if (! is_string($raw) || $raw === '') {
+            return [];
+        }
+
+        $decoded = json_decode($raw, true);
+
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($decoded as $variantId => $qty) {
+            if ((int) $qty > 0) {
+                $out[(int) $variantId] = (int) $qty;
+            }
+        }
+
+        return $out;
     }
 
     protected function persist(array $cart): void
     {
         session()->put(self::SESSION_KEY, $cart);
+        Cookie::queue(self::COOKIE_KEY, json_encode($cart), self::COOKIE_MINUTES);
     }
 
     /**
@@ -30,6 +80,12 @@ class CartService
     public function add(ProductVariant $variant, int $quantity): void
     {
         $cart = $this->raw();
+
+        // Never let a new distinct line push the cart past the cookie limit.
+        if (! isset($cart[$variant->id]) && count($cart) >= self::MAX_LINES) {
+            return;
+        }
+
         $moq = $variant->effective_moq;
 
         $current = $cart[$variant->id] ?? 0;
@@ -64,7 +120,10 @@ class CartService
 
     public function clear(): void
     {
-        session()->forget(self::SESSION_KEY);
+        // Set an authoritative empty state (not forget) so a later read in the
+        // same request can't rehydrate the just-cleared cart from the cookie.
+        session()->put(self::SESSION_KEY, []);
+        Cookie::queue(Cookie::forget(self::COOKIE_KEY));
     }
 
     public function isEmpty(): bool

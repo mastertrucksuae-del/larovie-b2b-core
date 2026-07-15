@@ -11,6 +11,7 @@ class Setting extends Model
     protected $casts = [
         'quote_validity_days' => 'integer',
         'last_synced_at' => 'datetime',
+        'search_indexing_enabled' => 'boolean',
     ];
 
     /**

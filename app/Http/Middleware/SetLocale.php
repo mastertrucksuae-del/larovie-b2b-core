@@ -12,7 +12,15 @@ class SetLocale
 
     public function handle(Request $request, Closure $next): Response
     {
-        $locale = session('locale', config('app.locale'));
+        // An explicit ?hl= param wins (used by hreflang alternates & search
+        // crawlers), and is remembered for the rest of the session.
+        $hl = $request->query('hl');
+        if (is_string($hl) && in_array($hl, self::SUPPORTED, true)) {
+            session(['locale' => $hl]);
+            $locale = $hl;
+        } else {
+            $locale = session('locale', config('app.locale'));
+        }
 
         if (! in_array($locale, self::SUPPORTED, true)) {
             $locale = 'en';

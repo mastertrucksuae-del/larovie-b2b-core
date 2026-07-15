@@ -29,6 +29,7 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->brandName('Larovie Wholesale')
+            ->databaseNotifications()
             ->colors([
                 'primary' => Color::Rose,
             ])
@@ -40,6 +41,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 \App\Filament\Widgets\InquiryStats::class,
+                \App\Filament\Widgets\PipelineMetrics::class,
                 \App\Filament\Widgets\LatestInquiries::class,
                 AccountWidget::class,
             ])

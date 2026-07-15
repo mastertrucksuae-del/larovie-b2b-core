@@ -14,12 +14,14 @@ class Inquiry extends Model
     public const STATUS_RESPONDING = 'responding';
     public const STATUS_PRICES_FILLED = 'prices_filled';
     public const STATUS_QUOTE_SENT = 'quote_sent';
+    public const STATUS_ORDER_CONFIRMED = 'order_confirmed';
 
     public const STATUSES = [
         self::STATUS_NEW => 'New inquiry',
         self::STATUS_RESPONDING => 'Responding',
         self::STATUS_PRICES_FILLED => 'Prices filled',
         self::STATUS_QUOTE_SENT => 'Quote sent',
+        self::STATUS_ORDER_CONFIRMED => 'Order confirmed',
     ];
 
     protected $guarded = ['id'];
@@ -29,6 +31,8 @@ class Inquiry extends Model
         'quote_valid_until' => 'date',
         'quoted_subtotal' => 'decimal:2',
         'quoted_total' => 'decimal:2',
+        'quote_sent_at' => 'datetime',
+        'order_confirmed_at' => 'datetime',
     ];
 
     protected static function booted(): void
@@ -144,5 +148,28 @@ class Inquiry extends Model
     public function statusLabel(): string
     {
         return self::STATUSES[$this->status] ?? $this->status;
+    }
+
+    /**
+     * Stamp the pipeline timestamp that corresponds to a status, once, the
+     * first time the inquiry reaches that stage. Received = created_at.
+     */
+    public function stampPipeline(string $status): void
+    {
+        if ($status === self::STATUS_QUOTE_SENT && $this->quote_sent_at === null) {
+            $this->quote_sent_at = now();
+        }
+
+        if ($status === self::STATUS_ORDER_CONFIRMED && $this->order_confirmed_at === null) {
+            $this->order_confirmed_at = now();
+        }
+    }
+
+    /** Minutes from inquiry received to quote sent — the response-time metric. */
+    public function responseMinutes(): ?int
+    {
+        return $this->quote_sent_at
+            ? $this->created_at->diffInMinutes($this->quote_sent_at)
+            : null;
     }
 }

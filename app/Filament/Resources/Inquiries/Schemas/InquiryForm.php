@@ -56,6 +56,49 @@ class InquiryForm
                     self::customerSection()->columnSpan(2),
                     self::quoteSection()->columnSpan(1),
                 ]),
+
+                // Attribution + pipeline timestamps (P0 #5, #6, #7).
+                self::sourceSection(),
+            ]);
+    }
+
+    protected static function sourceSection(): Section
+    {
+        return Section::make('Source & timeline')
+            ->description('Where this lead came from, and how it moved through the pipeline.')
+            ->columnSpanFull()
+            ->collapsed()
+            ->collapsible()
+            ->schema([
+                Placeholder::make('attribution')
+                    ->hiddenLabel()
+                    ->content(function ($record) {
+                        if (! $record) {
+                            return '—';
+                        }
+
+                        $rows = [
+                            ['Received', optional($record->created_at)->format('d M Y, H:i')],
+                            ['Quote sent', optional($record->quote_sent_at)->format('d M Y, H:i') ?: '—'],
+                            ['Order confirmed', optional($record->order_confirmed_at)->format('d M Y, H:i') ?: '—'],
+                            ['Response time', $record->responseMinutes() !== null ? $record->responseMinutes().' min' : '—'],
+                            ['UTM source', $record->utm_source ?: '—'],
+                            ['UTM medium', $record->utm_medium ?: '—'],
+                            ['UTM campaign', $record->utm_campaign ?: '—'],
+                            ['Referral code', $record->referral_code ?: '—'],
+                            ['Landing page', $record->landing_page ?: '—'],
+                            ['Referrer', $record->referrer ?: '—'],
+                        ];
+
+                        $html = '<div style="display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:13px;max-width:640px;">';
+                        foreach ($rows as [$label, $value]) {
+                            $html .= '<span style="color:#6b7280;">'.e($label).'</span>'
+                                .'<span style="color:#111827;word-break:break-all;">'.e($value).'</span>';
+                        }
+                        $html .= '</div>';
+
+                        return new \Illuminate\Support\HtmlString($html);
+                    }),
             ]);
     }
 

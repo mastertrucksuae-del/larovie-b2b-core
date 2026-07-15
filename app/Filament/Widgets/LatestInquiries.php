@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class LatestInquiries extends TableWidget
 {
+    protected static ?int $sort = -4;
+
     protected static ?string $heading = 'Recent inquiries';
 
     protected int|string|array $columnSpan = 'full';

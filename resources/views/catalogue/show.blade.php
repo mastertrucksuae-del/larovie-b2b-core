@@ -2,6 +2,38 @@
 
 @section('title', $product->title)
 
+@php
+    $metaDesc = $product->description
+        ? \Illuminate\Support\Str::limit(trim(preg_replace('/\s+/', ' ', strip_tags($product->description))), 155)
+        : trim(($product->effective_brand ? $product->effective_brand.' — ' : '').$product->title.'. '.__('shop.meta_description_default'));
+@endphp
+
+@section('meta_description', $metaDesc)
+@if ($product->display_image)
+    @section('og_image', $product->display_image)
+@endif
+
+@push('head')
+    <script type="application/ld+json">
+    @php
+        $ld = array_filter([
+            '@context' => 'https://schema.org',
+            '@type' => 'Product',
+            'name' => $product->title,
+            'image' => $product->display_image,
+            'description' => $metaDesc,
+            'sku' => optional($product->variants->first())->sku,
+            'category' => $product->product_type ?: null,
+            'brand' => $product->effective_brand ? [
+                '@type' => 'Brand',
+                'name' => $product->effective_brand,
+            ] : null,
+        ]);
+    @endphp
+    {!! json_encode($ld, JSON_UNESCAPED_UNICODE) !!}
+    </script>
+@endpush
+
 @section('content')
     <nav class="mb-8 text-sm text-plum-500 flex items-center gap-2">
         <a href="{{ route('catalogue.index') }}" class="hover:text-plum transition">{{ __('shop.catalogue') }}</a>

@@ -48,8 +48,14 @@ class InquiriesTable
                         Inquiry::STATUS_RESPONDING => 'info',
                         Inquiry::STATUS_PRICES_FILLED => 'primary',
                         Inquiry::STATUS_QUOTE_SENT => 'success',
+                        Inquiry::STATUS_ORDER_CONFIRMED => 'success',
                         default => 'gray',
                     }),
+                TextColumn::make('utm_source')
+                    ->label('Source')
+                    ->placeholder('—')
+                    ->description(fn (Inquiry $r) => $r->referral_code ? 'code: '.$r->referral_code : null)
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('created_at')
                     ->label('Received')
                     ->dateTime('d M Y, H:i')
@@ -59,6 +65,14 @@ class InquiriesTable
             ->filters([
                 SelectFilter::make('status')
                     ->options(Inquiry::STATUSES),
+                SelectFilter::make('utm_source')
+                    ->label('Source')
+                    ->options(fn () => Inquiry::query()
+                        ->whereNotNull('utm_source')
+                        ->distinct()
+                        ->orderBy('utm_source')
+                        ->pluck('utm_source', 'utm_source')
+                        ->all()),
             ])
             ->recordActions([
                 Action::make('whatsapp')

@@ -42,6 +42,13 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // Public wholesale customers (KYC business accounts) — separate from the
+        // Filament admin 'web' guard so the two sessions never collide.
+        'business' => [
+            'driver' => 'session',
+            'provider' => 'business_accounts',
+        ],
     ],
 
     /*
@@ -67,10 +74,10 @@ return [
             'model' => env('AUTH_MODEL', User::class),
         ],
 
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
+        'business_accounts' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\BusinessAccount::class,
+        ],
     ],
 
     /*
