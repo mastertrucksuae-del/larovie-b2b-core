@@ -182,3 +182,35 @@ tests under `tests/**`; `.env`, `.env.example`, `README.md`.
 **Hotfix (same day):** `/admin/business-accounts` 500'd — `ListBusinessAccounts` imported a non-existent `Filament\Resources\Components\Tab`; switched to `Filament\Schemas\Components\Tabs\Tab` (same class ListInquiries uses). Verified page now 302→login instead of 500. Also floated the dashboard stat widgets to the top via `$sort` (InquiryStats −6, PipelineMetrics −5, LatestInquiries −4) so the metrics sit above the account/welcome widget.
 
 **Arabic polish + Cairo font (same day):** Rewrote `lang/ar/shop.php` into natural Gulf-business Arabic (better phrasing, correct pharma term "أرقام تشغيل" for batch codes, proper dual/plural forms for product count, "تواصل معنا"/"تذكّرني" UI terms), then stripped ALL diacritics for clean modern UI copy (verified zero tashkeel; 138/138 EN parity). Switched the Arabic UI font from the never-loaded Tajawal to **Cairo via Google Fonts CDN**: `--font-arabic` now `'Cairo', 'Inter', …` in app.css, and the storefront `<head>` conditionally (`@if $locale === 'ar'`) adds preconnect + the Cairo stylesheet link. Rebuilt assets; verified the CDN link renders on AR pages and the compiled CSS uses Cairo. (User also tweaked authentic_title→"ضمان المصادر الاصلية" and authentic_badge on the authenticity page.)
+
+---
+
+## 2026-08-10
+**Topics:** SEO go-live (the site was invisible to Google) + a Core Web Vitals pass, prompted by three findings: `noindex, nofollow` on every page, `/sitemap.xml` 404, and `robots.txt` serving `Disallow: /`.
+
+**Root cause:** all three were the same switch. The `search_indexing_enabled` gate built in Wave 4 shipped defaulting to OFF and was never flipped after go-live. A second, hidden bug sat underneath it: `Setting::create([])` does not read back DB-level column defaults, so even with the column defaulting to true a fresh install would have read `null` (falsy) and served `noindex` anyway.
+
+**Decisions:**
+- Flip indexing ON in a migration rather than leaving it as founder action — the trust/contact pages it was gating on are live, so the gate had outlived its purpose. It stays togglable in Admin → Settings for pulling the site out of search.
+- Belt-and-braces the default: column default *and* `$attributes` on the model.
+- Self-host **Cairo** (founder's confirmed choice) via the Vite fonts plugin instead of reverting to the bundled Tajawal — keeps the design decision from 2026-07 while dropping the render-blocking Google Fonts CDN.
+- Font preloading deliberately left OFF: Bunny splits each weight into ~7 unicode-range subsets and `rel=preload` ignores unicode-range, so preloading would pull ~250KB of subsets the page never renders. Inlined `@font-face` + `display:swap` is strictly better here.
+- Publish wholesale prices as `AggregateOffer` `lowPrice` (a lower bound), not fixed offers — pricing is quote-based, so a fixed `Offer` would be untrue.
+
+**Discovered along the way:** the layout never called `@fonts`, so Playfair/Inter/Tajawal were bundled but never emitted — the storefront had been rendering in system fallbacks, and the CDN link was the only thing making Cairo work on AR pages.
+
+**Also:** dropped the `⚡` prefix from the five Livewire component filenames at the user's request (Livewire 4 strips it as a cosmetic marker via `Finder::ZAP`, so component names are unchanged — verified in vendor before renaming).
+
+**Files modified:** `database/migrations/2026_08_10_000001_enable_search_indexing.php` (new); `app/Models/Setting.php`; `app/Http/Controllers/SitemapController.php`; `app/Support/Img.php` (new); `app/Support/Money.php`; `app/Services/Shopify/ProductSyncService.php`; `app/Filament/Pages/ManageSettings.php`; `resources/views/layouts/storefront.blade.php`; `resources/views/catalogue/{show,partials/product-card}.blade.php`; `resources/views/components/catalogue.blade.php`; `resources/views/sitemap.blade.php`; `resources/css/app.css`; `vite.config.js`; `public/.htaccess`; `lang/{en,ar}/shop.php`; `tests/Feature/{SeoTest,FontLoadingTest}.php` (new); 5 Livewire component files renamed.
+
+**Verify:** `npm run build` clean; **66 tests / 181 assertions pass** (was 57/143 — 9 new SEO + font tests).
+
+**Deploy notes (required — none of this is live until deployed):**
+1. `php artisan migrate` — this is what flips indexing on.
+2. `npm run build` — `public/build` is gitignored, and the font + CSS changes only take effect after a rebuild on the server.
+3. `php artisan view:clear` (and `config:cache`/`route:cache` if used).
+4. Confirm `APP_URL=https://wholesale.larovie.com` in the production `.env` — canonical, hreflang and the sitemap's `Sitemap:` directive are all generated from it.
+5. Then verify: `/robots.txt` shows `Allow: /`, `/sitemap.xml` returns 200 XML, and the homepage `<meta name="robots">` reads `index, follow`.
+6. Still founder action (external): submit the sitemap in Google Search Console and register the Google Business Profile.
+
+**Not verifiable from here:** the `.htaccess` compression/cache blocks assume Apache — if production runs nginx they are inert and the equivalent `gzip`/`expires` directives need adding to the server config instead. Actual PageSpeed scores also depend on hosting TTFB, which no code change addresses.
