@@ -116,6 +116,40 @@ class SeoTest extends TestCase
             ->assertSee('<html lang="ar" dir="rtl"', escape: false);
     }
 
+    /**
+     * Google re-checks the verification file periodically and revokes access to
+     * Search Console if it disappears, so this guards against it being tidied
+     * away. It must sit in public/ — the project root is never served.
+     */
+    public function test_google_site_verification_file_is_in_the_web_root(): void
+    {
+        $files = glob(public_path('google*.html'));
+
+        $this->assertNotEmpty($files, 'The Google Search Console verification file is missing from public/.');
+
+        foreach ($files as $file) {
+            $this->assertStringContainsString(
+                'google-site-verification:',
+                (string) file_get_contents($file),
+                basename($file).' does not contain the verification token.'
+            );
+        }
+    }
+
+    public function test_robots_does_not_block_the_verification_file(): void
+    {
+        $this->setIndexing(true);
+
+        $body = $this->get('/robots.txt')->assertOk()->getContent();
+
+        foreach (glob(public_path('google*.html')) as $file) {
+            $this->assertStringNotContainsString(
+                'Disallow: /'.basename($file),
+                $body
+            );
+        }
+    }
+
     public function test_pages_carry_canonical_and_structured_data(): void
     {
         $this->get(route('catalogue.index'))
