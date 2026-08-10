@@ -15,8 +15,15 @@
     $logoPng = asset('images/larovie-logo-dark-transparant.png');
     $contactTel = \App\Support\Contact::tel();
     $waLink = \App\Support\Contact::whatsappLink();
-    // Canonical is the current path without query strings; hreflang variants hang off it.
-    $canonical = url()->current();
+    // Canonical must be SELF-referencing on every hreflang alternate: if an
+    // alternate canonicalises to a different URL, Google discards the entire
+    // language cluster and the Arabic pages never get indexed. English is served
+    // on the bare URL (SetLocale defaults to it for session-less crawlers), so
+    // only Arabic needs the ?hl= variant — advertising ?hl=en as well would just
+    // create a duplicate of the bare URL.
+    $baseUrl = url()->current();
+    $requestedLocale = request()->query('hl');
+    $canonical = $requestedLocale === 'ar' ? $baseUrl.'?hl=ar' : $baseUrl;
 @endphp
 <!DOCTYPE html>
 <html lang="{{ $locale }}" dir="{{ $dir }}">
@@ -36,10 +43,10 @@
     <link rel="canonical" href="{{ $canonical }}">
     @if ($settings->search_indexing_enabled)
         <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
-        {{-- hreflang pairs — distinct per-language URLs via ?hl= --}}
-        <link rel="alternate" hreflang="en" href="{{ $canonical }}?hl=en">
-        <link rel="alternate" hreflang="ar" href="{{ $canonical }}?hl=ar">
-        <link rel="alternate" hreflang="x-default" href="{{ $canonical }}">
+        {{-- English lives on the bare URL; Arabic on ?hl=ar. Both are self-canonical. --}}
+        <link rel="alternate" hreflang="en" href="{{ $baseUrl }}">
+        <link rel="alternate" hreflang="ar" href="{{ $baseUrl }}?hl=ar">
+        <link rel="alternate" hreflang="x-default" href="{{ $baseUrl }}">
     @else
         <meta name="robots" content="noindex, nofollow">
     @endif

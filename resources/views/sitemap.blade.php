@@ -4,7 +4,10 @@
 @foreach ($urls as $url)
     <url>
         <loc>{{ $url['loc'] }}</loc>
-        <xhtml:link rel="alternate" hreflang="en" href="{{ $url['loc'] }}?hl=en"/>
+        {{-- Must mirror the page's own <link rel="alternate"> set exactly, and each
+             target must be self-canonical, or Google drops the language cluster.
+             English is the bare URL; only Arabic carries ?hl=. --}}
+        <xhtml:link rel="alternate" hreflang="en" href="{{ $url['loc'] }}"/>
         <xhtml:link rel="alternate" hreflang="ar" href="{{ $url['loc'] }}?hl=ar"/>
         <xhtml:link rel="alternate" hreflang="x-default" href="{{ $url['loc'] }}"/>
         @isset($url['lastmod'])<lastmod>{{ $url['lastmod'] }}</lastmod>@endisset

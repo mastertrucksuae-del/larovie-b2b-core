@@ -84,6 +84,40 @@ class SeoTest extends TestCase
         $this->get(route('sitemap'))->assertNotFound();
     }
 
+    /**
+     * Google drops an entire hreflang cluster if an alternate URL canonicalises
+     * somewhere else. Previously every page advertised ?hl=en and ?hl=ar while
+     * both canonicalised to the bare URL, so the Arabic pages were never
+     * indexable and the annotations did nothing.
+     */
+    public function test_each_hreflang_alternate_is_self_canonical(): void
+    {
+        $html = $this->get(route('catalogue.index'))->assertOk()->getContent();
+
+        preg_match_all('/<link rel="alternate" hreflang="([^"]+)" href="([^"]+)">/', $html, $m, PREG_SET_ORDER);
+        $this->assertNotEmpty($m, 'No hreflang alternates rendered.');
+
+        foreach ($m as [, $lang, $href]) {
+            $target = $this->get($href)->assertOk()->getContent();
+
+            preg_match('/<link rel="canonical" href="([^"]+)">/', $target, $c);
+            $this->assertNotEmpty($c, "No canonical on the {$lang} alternate.");
+
+            $this->assertSame(
+                $href,
+                $c[1],
+                "hreflang=\"{$lang}\" points at {$href}, which canonicalises to {$c[1]}."
+            );
+        }
+    }
+
+    public function test_arabic_alternate_actually_serves_arabic(): void
+    {
+        $this->get(route('catalogue.index').'?hl=ar')
+            ->assertOk()
+            ->assertSee('<html lang="ar" dir="rtl"', escape: false);
+    }
+
     public function test_pages_carry_canonical_and_structured_data(): void
     {
         $this->get(route('catalogue.index'))
