@@ -230,3 +230,26 @@ tests under `tests/**`; `.env`, `.env.example`, `README.md`.
 **nginx conf rewritten** against the real Forge server block (landed in `552fd17`, whose message covers only the logo work — noted here for the record). Two corrections once the actual config was known: dropped the `\.(css|js|…)$` regex location, which would also have captured `/livewire-*/livewire.js` — a dynamic PHP route that sets its own `Cache-Control`, so the block would have emitted two conflicting `Cache-Control` headers on that response; and re-declared `X-Content-Type-Options` inside each location, because nginx `add_header` does not merge with parent scope and would otherwise discard the server-level security headers. Cache lifetimes are graded by how each filename is generated: immutable for content-hashed Vite output, 30d for ULID-named uploads, 7d for repo images.
 
 **Still outstanding:** paste `deploy/nginx/larovie-performance.conf` into Forge → Site → Nginx Configuration (the only remaining verified failure); brotli left commented out because the module is not installed by default and an uncommented `brotli on;` makes nginx refuse to reload.
+
+**Accessibility + font-format round (same day).** Worked from the actual Lighthouse mobile report this time. All four scored a11y failures fixed:
+
+| Failure | Cause | Fix |
+|---|---|---|
+| Buttons without accessible name | The inquiry/cart button's label is `hidden` below `sm`, which removes it from the accessibility tree — on mobile it was an icon with no name | `aria-label` with the item count; count badge `aria-hidden` |
+| Select without label | Category filter had no name (sort already had one) | `aria-label` on the select **and** the search input — a placeholder is not an accessible name |
+| Contrast | `rose-accent` #b76e79 = **3.80:1** on white, **3.54:1** on ivory (needs 4.5:1) | Small text → `rose-deep` #9c5763 (5.31 / 4.94) |
+| Heading order | Brand sections emitted `<h2>` **only when the brand had no logo**, so logo'd brands jumped h1 → h3 | Every section carries a heading |
+
+**Decision — contrast was not a global token change.** On the plum-950 footer the ratios invert: `rose-accent` passes at 4.71 and `rose-deep` would *fail* at 3.38. So the swap is per-background — the footer link and icon deliberately keep `rose-accent`. Ratios were computed, not eyeballed.
+
+**Also fixed the heading markup, not just the level:** the old code put `<h2>` *inside* `<button>`, which is invalid (`<button>` takes phrasing content only). The `<h2>` now wraps the disclosure button. Brand logo `alt` dropped to `""` since the brand name is the heading text — it was duplicate announcement.
+
+**Font bug — legacy WOFF was overriding WOFF2.** Bunny emits two `@font-face` rules per variant (WOFF2 then WOFF) with identical family, weight, style **and** `unicode-range`. Per the CSS Fonts spec the later matching rule wins, so browsers downloaded the legacy format and the WOFF2 was never used — the report's network tree showed `inter-400.woff` at 30.26 KiB. A `woff2Only()` build plugin in `vite.config.js` strips those rules. Side benefits: the `@font-face` CSS inlined into every page halves (Inter 16,489 → 8,248 bytes) and 824 KiB of now-unreferenced `.woff` files stop being deployed.
+
+**Deliberately not acted on:**
+- *Missing source maps* — marked **Unscored** in the report and refers to Livewire's own vendor bundle (`/livewire-*/livewire.js`), which we don't build. No score impact.
+- *Render-blocking CSS (~460ms)* — clearing this audit fully means inlining the ~70KB raw / 14KB gzipped Tailwind bundle into every response, which trades away cross-page caching on a catalogue where buyers open many product pages. Left as a founder call; the cache policy below recovers most of it for repeat visits.
+
+**Verify:** 72 tests / 231 assertions pass. New `AccessibilityTest` covers button naming, control labelling and heading order, plus a generic sweep asserting *any* icon-only button has a name.
+
+**Still outstanding (unchanged):** the nginx config has not been applied — `/build/*`, `/storage/*` and `/images/*` still return no `Cache-Control` at all.
