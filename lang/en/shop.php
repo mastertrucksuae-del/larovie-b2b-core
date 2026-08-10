@@ -52,6 +52,12 @@ return [
 
     // Cart
     'inquiry' => 'Inquiry',
+    // Accessible names — the visible labels these describe are icon-only or
+    // hidden at small breakpoints, so screen readers need them spelled out.
+    'inquiry_items' => '{0}Inquiry, empty|{1}Inquiry, :count item|[2,*]Inquiry, :count items',
+    'search_products' => 'Search products',
+    'filter_by_category' => 'Filter by category',
+    'all_products' => 'All products',
     'your_inquiry' => 'Your Inquiry',
     'inquiry_empty' => 'Your inquiry is empty.',
     'browse_catalogue' => 'Browse the catalogue',

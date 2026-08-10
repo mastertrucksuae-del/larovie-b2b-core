@@ -9,10 +9,10 @@
             <span class="font-display text-lg text-ink">{{ __('shop.authentic_title') }}</span>
         </div>
         <ul class="grid grid-cols-2 sm:flex sm:flex-1 sm:flex-wrap items-center gap-x-6 gap-y-2 text-sm text-plum-700">
-            <li class="inline-flex items-center gap-1.5"><span class="text-rose-accent">&#10003;</span> {{ __('shop.authentic_point_1') }}</li>
-            <li class="inline-flex items-center gap-1.5"><span class="text-rose-accent">&#10003;</span> {{ __('shop.authentic_point_2') }}</li>
-            <li class="inline-flex items-center gap-1.5"><span class="text-rose-accent">&#10003;</span> {{ __('shop.authentic_point_3') }}</li>
-            <li class="inline-flex items-center gap-1.5"><span class="text-rose-accent">&#10003;</span> {{ __('shop.authentic_point_4') }}</li>
+            <li class="inline-flex items-center gap-1.5"><span class="text-rose-deep">&#10003;</span> {{ __('shop.authentic_point_1') }}</li>
+            <li class="inline-flex items-center gap-1.5"><span class="text-rose-deep">&#10003;</span> {{ __('shop.authentic_point_2') }}</li>
+            <li class="inline-flex items-center gap-1.5"><span class="text-rose-deep">&#10003;</span> {{ __('shop.authentic_point_3') }}</li>
+            <li class="inline-flex items-center gap-1.5"><span class="text-rose-deep">&#10003;</span> {{ __('shop.authentic_point_4') }}</li>
         </ul>
         <span class="hidden sm:inline text-sm font-medium text-plum group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 transition">{{ __('shop.learn_more') }} &rarr;</span>
     </div>

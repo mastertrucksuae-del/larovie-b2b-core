@@ -115,7 +115,7 @@
         {{-- Details --}}
         <div class="lg:pt-4">
             @if ($product->product_type)
-                <span class="text-xs uppercase tracking-[0.2em] text-rose-accent">{{ $product->product_type }}</span>
+                <span class="text-xs uppercase tracking-[0.2em] text-rose-deep">{{ $product->product_type }}</span>
             @endif
             <h1 class="mt-2 font-display text-3xl sm:text-4xl text-ink leading-tight">{{ $product->title }}</h1>
             @if ($product->effective_brand)

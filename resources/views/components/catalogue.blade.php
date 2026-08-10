@@ -290,13 +290,16 @@ new class extends Component
                     <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                 </svg>
             </span>
+            {{-- A placeholder is not an accessible name — it disappears on input. --}}
             <input type="search" wire:model.live.debounce.300ms="search"
                    placeholder="{{ __('shop.search_placeholder') }}"
+                   aria-label="{{ __('shop.search_products') }}"
                    class="w-full rounded-full border border-line bg-white ps-14 pe-5 py-4 text-lg text-ink placeholder:text-plum-500/50 shadow-sm focus:border-plum focus:ring-2 focus:ring-plum/15 transition">
         </div>
 
         <div class="flex items-center gap-2 shrink-0">
             <select wire:model.live="type"
+                    aria-label="{{ __('shop.filter_by_category') }}"
                     class="w-40 rounded-full border border-line bg-white px-4 py-3.5 text-sm text-ink focus:border-plum focus:ring-2 focus:ring-plum/15">
                 <option value="">{{ __('shop.all_categories') }}</option>
                 @foreach ($this->categories as $cat)
@@ -352,31 +355,39 @@ new class extends Component
                              x-data="{ open: true }"
                              x-on:brand-jump.window="if ($event.detail.index === {{ $idx }}) { open = true; $nextTick(() => $el.scrollIntoView({ behavior: 'smooth', block: 'start' })) }"
                              class="scroll-mt-52">
+                        {{-- Every brand section carries a real <h2>, whether it shows a logo
+                             or a name — otherwise logo'd brands emitted no heading at all and
+                             the page jumped h1 -> h3 at the product cards. The heading wraps
+                             the button rather than sitting inside it: <button> takes phrasing
+                             content only, so a heading nested in one is invalid. --}}
                         <div class="flex items-center gap-3 mt-12 mb-5 first:mt-0">
-                            <button type="button" @click="open = !open" :aria-expanded="open"
-                                    aria-controls="brand-grid-{{ $idx }}"
-                                    class="group flex items-center gap-4 cursor-pointer text-start">
-                                <svg class="w-5 h-5 shrink-0 text-plum-500 transition-transform duration-200 rtl:-scale-x-100"
-                                     :class="open ? 'rotate-90' : ''"
-                                     fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                                </svg>
-                                @if ($logo)
-                                    {{-- Same white framed tile as the slider, larger — one consistent brand mark. --}}
-                                    <span class="inline-flex h-16 min-w-[8rem] max-w-[13rem] items-center justify-center rounded-xl border border-line bg-white px-5 py-2.5 transition group-hover:border-plum/40">
-                                        <img src="{{ $logo }}" alt="{{ $label }}"
-                                             width="160" height="44"
-                                             class="max-h-11 max-w-full object-contain"
-                                             loading="lazy" decoding="async">
+                            <h2 class="contents">
+                                <button type="button" @click="open = !open" :aria-expanded="open"
+                                        aria-controls="brand-grid-{{ $idx }}"
+                                        class="group flex items-center gap-4 cursor-pointer text-start">
+                                    <svg class="w-5 h-5 shrink-0 text-plum-500 transition-transform duration-200 rtl:-scale-x-100"
+                                         :class="open ? 'rotate-90' : ''"
+                                         fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                                    </svg>
+                                    @if ($logo)
+                                        {{-- Same white framed tile as the slider, larger — one consistent brand mark.
+                                             The logo is decorative here: the brand name is already the heading text. --}}
+                                        <span class="inline-flex h-16 min-w-[8rem] max-w-[13rem] items-center justify-center rounded-xl border border-line bg-white px-5 py-2.5 transition group-hover:border-plum/40">
+                                            <img src="{{ $logo }}" alt=""
+                                                 width="160" height="44"
+                                                 class="max-h-11 max-w-full object-contain"
+                                                 loading="lazy" decoding="async">
+                                        </span>
+                                        <span class="sr-only">{{ $label }}</span>
+                                    @else
+                                        <span class="font-display text-2xl text-ink whitespace-nowrap group-hover:text-plum transition-colors">{{ $label }}</span>
+                                    @endif
+                                    <span class="inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full bg-blush text-rose-deep text-xs font-semibold">
+                                        {{ $meta['count'] }}
                                     </span>
-                                    <span class="sr-only">{{ $label }}</span>
-                                @else
-                                    <h2 class="font-display text-2xl text-ink whitespace-nowrap group-hover:text-plum transition-colors">{{ $label }}</h2>
-                                @endif
-                                <span class="inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full bg-blush text-rose-deep text-xs font-semibold">
-                                    {{ $meta['count'] }}
-                                </span>
-                            </button>
+                                </button>
+                            </h2>
                             <span class="h-px flex-1 bg-line"></span>
                         </div>
                         <div id="brand-grid-{{ $idx }}" x-show="open" x-collapse
@@ -388,6 +399,9 @@ new class extends Component
                     </section>
                 @endforeach
             @else
+                {{-- Ungrouped sorts have no brand headings, so the grid needs its own
+                     h2 to keep the h1 -> h2 -> h3 chain intact for screen readers. --}}
+                <h2 class="sr-only">{{ __('shop.all_products') }}</h2>
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-7">
                     @foreach ($this->products as $product)
                         @include('catalogue.partials.product-card', ['product' => $product, 'priority' => $loop->index < 4])

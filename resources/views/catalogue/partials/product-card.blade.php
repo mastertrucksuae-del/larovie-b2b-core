@@ -41,7 +41,7 @@
     </div>
     <div class="flex flex-1 flex-col p-4">
         @if ($product->product_type)
-            <span class="text-[11px] uppercase tracking-[0.15em] text-rose-accent">{{ $product->product_type }}</span>
+            <span class="text-[11px] uppercase tracking-[0.15em] text-rose-deep">{{ $product->product_type }}</span>
         @endif
         <h3 class="mt-1 font-medium text-ink leading-snug line-clamp-2 group-hover:text-plum transition">{{ $product->title }}</h3>
 

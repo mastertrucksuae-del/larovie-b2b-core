@@ -10,7 +10,7 @@
 
 @section('content')
     <div class="mb-10 max-w-2xl">
-        <p class="text-xs uppercase tracking-[0.25em] text-rose-accent mb-3">{{ __('shop.wholesale') }}</p>
+        <p class="text-xs uppercase tracking-[0.25em] text-rose-deep mb-3">{{ __('shop.wholesale') }}</p>
         <h1 class="font-display text-4xl sm:text-5xl text-ink leading-[1.1]">{{ __('shop.contact_title') }}</h1>
         <p class="mt-4 text-plum-600 leading-relaxed">{{ __('shop.contact_intro') }}</p>
     </div>
