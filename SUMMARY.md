@@ -201,16 +201,19 @@ tests under `tests/**`; `.env`, `.env.example`, `README.md`.
 
 **Also:** dropped the `⚡` prefix from the five Livewire component filenames at the user's request (Livewire 4 strips it as a cosmetic marker via `Finder::ZAP`, so component names are unchanged — verified in vendor before renaming).
 
-**Files modified:** `database/migrations/2026_08_10_000001_enable_search_indexing.php` (new); `app/Models/Setting.php`; `app/Http/Controllers/SitemapController.php`; `app/Support/Img.php` (new); `app/Support/Money.php`; `app/Services/Shopify/ProductSyncService.php`; `app/Filament/Pages/ManageSettings.php`; `resources/views/layouts/storefront.blade.php`; `resources/views/catalogue/{show,partials/product-card}.blade.php`; `resources/views/components/catalogue.blade.php`; `resources/views/sitemap.blade.php`; `resources/css/app.css`; `vite.config.js`; `public/.htaccess`; `lang/{en,ar}/shop.php`; `tests/Feature/{SeoTest,FontLoadingTest}.php` (new); 5 Livewire component files renamed.
+**Files modified:** `database/migrations/2026_08_10_000001_enable_search_indexing.php` (new); `app/Models/Setting.php`; `app/Http/Controllers/SitemapController.php`; `app/Support/Img.php` (new); `app/Support/Money.php`; `app/Services/Shopify/ProductSyncService.php`; `app/Filament/Pages/ManageSettings.php`; `resources/views/layouts/storefront.blade.php`; `resources/views/catalogue/{show,partials/product-card}.blade.php`; `resources/views/components/catalogue.blade.php`; `resources/views/sitemap.blade.php`; `resources/css/app.css`; `vite.config.js`; `lang/{en,ar}/shop.php`; `app/Http/Middleware/SecurityHeaders.php` + `bootstrap/app.php` (new); `deploy/README.md` + `deploy/nginx/larovie-performance.conf` (new); `tests/Feature/{SeoTest,FontLoadingTest,SecurityHeadersTest}.php` (new); 5 Livewire component files renamed.
 
-**Verify:** `npm run build` clean; **66 tests / 181 assertions pass** (was 57/143 — 9 new SEO + font tests).
+**Correction (same session):** production runs **Laravel Forge → nginx**, not Apache. The `public/.htaccess` compression/cache blocks I had added were inert there, so `.htaccess` was reverted to the Laravel default and the work was split by layer: security headers moved into `SecurityHeaders` middleware (server-agnostic, and survives a Forge nginx template reset), while gzip/brotli and static `Cache-Control` — which nginx serves without ever touching PHP — moved to `deploy/nginx/larovie-performance.conf` for pasting into Forge → Site → Nginx Configuration.
 
-**Deploy notes (required — none of this is live until deployed):**
-1. `php artisan migrate` — this is what flips indexing on.
-2. `npm run build` — `public/build` is gitignored, and the font + CSS changes only take effect after a rebuild on the server.
-3. `php artisan view:clear` (and `config:cache`/`route:cache` if used).
+**Verify:** `npm run build` clean; **67 tests / 189 assertions pass** (was 57/143 — 10 new SEO, font and header tests).
+
+**Deploy notes (required — none of this is live until deployed).** Full runbook in [deploy/README.md](deploy/README.md):
+1. `php artisan migrate --force` — this is what flips indexing on.
+2. `npm ci && npm run build` — `public/build` is gitignored, so the font + CSS changes only exist after a rebuild **on the server**.
+3. `php artisan view:clear` (plus `config:cache`/`route:cache`).
 4. Confirm `APP_URL=https://wholesale.larovie.com` in the production `.env` — canonical, hreflang and the sitemap's `Sitemap:` directive are all generated from it.
-5. Then verify: `/robots.txt` shows `Allow: /`, `/sitemap.xml` returns 200 XML, and the homepage `<meta name="robots">` reads `index, follow`.
-6. Still founder action (external): submit the sitemap in Google Search Console and register the Google Business Profile.
+5. Paste `deploy/nginx/larovie-performance.conf` into Forge → Site → Nginx Configuration (needs re-applying after any Forge template reset).
+6. Then verify: `/robots.txt` shows `Allow: /`, `/sitemap.xml` returns 200 XML, and the homepage `<meta name="robots">` reads `index, follow`.
+7. Still founder action (external): submit the sitemap in Google Search Console and register the Google Business Profile.
 
-**Not verifiable from here:** the `.htaccess` compression/cache blocks assume Apache — if production runs nginx they are inert and the equivalent `gzip`/`expires` directives need adding to the server config instead. Actual PageSpeed scores also depend on hosting TTFB, which no code change addresses.
+**Not verifiable from here:** whether the brotli nginx module is installed on the Forge box (the `brotli` lines in the conf are commented out for that reason — gzip covers the audit either way). Actual PageSpeed scores also depend on hosting TTFB, which no code change addresses.
