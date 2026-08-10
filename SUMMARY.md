@@ -217,3 +217,16 @@ tests under `tests/**`; `.env`, `.env.example`, `README.md`.
 7. Still founder action (external): submit the sitemap in Google Search Console and register the Google Business Profile.
 
 **Not verifiable from here:** whether the brotli nginx module is installed on the Forge box (the `brotli` lines in the conf are commented out for that reason — gzip covers the audit either way). Actual PageSpeed scores also depend on hosting TTFB, which no code change addresses.
+
+**PageSpeed follow-up (same day, post-deploy).** Deploy confirmed live: `robots.txt` serves `Allow: /`, `/sitemap.xml` returns 200 XML, `<meta name="robots">` reads `index, follow`, and the `SecurityHeaders` middleware output is present on the wire. Google's keyless PSI API was over its daily quota, so the site was measured directly with curl instead of reading the report.
+
+**What the measurements showed is already fine:** HTML 22KB gzipped, app.css 14KB gzipped, product images 3.1KB each **served as WebP by the Shopify CDN** (the `Img::srcset` work is doing its job — `width=400` confirmed on the wire, 24 cards with srcset, all 77 images carrying intrinsic dimensions).
+
+**What was actually broken:**
+1. **No `Cache-Control` on any static asset** — `/build/*.css`, `/storage/*.webp`, `/images/*.png` all returned with the header entirely absent, so every repeat visit re-downloaded ~320KB of brand logos plus the stylesheet. The nginx config had never been applied. This is the one genuinely failing audit and it needs manual application in the Forge panel — Forge does not read config from the repo.
+2. **Header logo was a 898×898 PNG (35,568 bytes) for a mark that renders at 80px.** Replaced with pre-scaled WebP: 3,910 bytes header, 2,160 bytes footer.
+3. **A bug introduced in 85cc005:** those two `<img>` tags were given `width="240" height="80"` / `width="168" height="56"` while the sources are 1:1 and 1.15:1. The wrong aspect ratio made the browser reserve the wrong box — *causing* the layout shift the attributes were added to prevent. Now matched to the real assets, and omitted entirely for admin-uploaded logos whose proportions are unknown.
+
+**nginx conf rewritten** against the real Forge server block (landed in `552fd17`, whose message covers only the logo work — noted here for the record). Two corrections once the actual config was known: dropped the `\.(css|js|…)$` regex location, which would also have captured `/livewire-*/livewire.js` — a dynamic PHP route that sets its own `Cache-Control`, so the block would have emitted two conflicting `Cache-Control` headers on that response; and re-declared `X-Content-Type-Options` inside each location, because nginx `add_header` does not merge with parent scope and would otherwise discard the server-level security headers. Cache lifetimes are graded by how each filename is generated: immutable for content-hashed Vite output, 30d for ULID-named uploads, 7d for repo images.
+
+**Still outstanding:** paste `deploy/nginx/larovie-performance.conf` into Forge → Site → Nginx Configuration (the only remaining verified failure); brotli left commented out because the module is not installed by default and an uncommented `brotli on;` makes nginx refuse to reload.
