@@ -6,7 +6,6 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Setting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class SeoTest extends TestCase
@@ -20,7 +19,6 @@ class SeoTest extends TestCase
         // The settings row is memoised statically and PHPUnit shares the process,
         // so a previous test's (rolled-back) instance would leak into this one.
         Setting::clearCache();
-        Cache::forget('sitemap.xml');
     }
 
     private function setIndexing(bool $enabled): void
