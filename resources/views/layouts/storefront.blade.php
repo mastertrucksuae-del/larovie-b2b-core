@@ -113,6 +113,11 @@
             }, { once: true });
         </script>
     @endif
+    {{-- Self-hosted brand fonts: inlines the @font-face rules and preloads the
+         files. Without this the bundled fonts are never referenced and the page
+         silently falls back to system faces. Only the locale's text font is
+         preloaded — the other script's files would be dead weight. --}}
+    @fonts([$locale === 'ar' ? 'cairo' : 'inter', 'playfair-display'])
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
     @stack('head')
