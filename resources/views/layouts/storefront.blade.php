@@ -2,10 +2,17 @@
     $locale = app()->getLocale();
     $dir = $locale === 'ar' ? 'rtl' : 'ltr';
     $settings = \App\Models\Setting::current();
-    $logo = $settings->logo_path
+    // Bundled marks are pre-scaled WebP (the source PNGs are 898px square, ~35KB,
+    // for a logo that never renders above 80px). Intrinsic dimensions are only
+    // declared for those — an admin-uploaded logo has unknown proportions, and a
+    // wrong width/height pair would itself cause the layout shift it prevents.
+    $hasCustomLogo = (bool) $settings->logo_path;
+    $logo = $hasCustomLogo
         ? \Illuminate\Support\Facades\Storage::url($settings->logo_path)
-        : asset('images/larovie-logo-dark-transparant.png');
-    $logoWhite = asset('images/larovie-logo-white-transparant.png');
+        : asset('images/larovie-logo-dark.webp');
+    $logoWhite = asset('images/larovie-logo-white.webp');
+    // Social/schema still point at the PNG — not every crawler decodes WebP.
+    $logoPng = asset('images/larovie-logo-dark-transparant.png');
     $contactTel = \App\Support\Contact::tel();
     $waLink = \App\Support\Contact::whatsappLink();
     // Canonical is the current path without query strings; hreflang variants hang off it.
@@ -43,10 +50,10 @@
     <meta property="og:title" content="@yield('title', $settings->company_name)">
     <meta property="og:description" content="@yield('meta_description', __('shop.meta_description_default'))">
     <meta property="og:url" content="{{ $canonical }}">
-    <meta property="og:image" content="@yield('og_image', asset('images/larovie-logo-dark-transparant.png'))">
+    <meta property="og:image" content="@yield('og_image', $logoPng)">
     <meta property="og:locale" content="{{ $locale === 'ar' ? 'ar_AE' : 'en_US' }}">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="@yield('og_image', asset('images/larovie-logo-dark-transparant.png'))">
+    <meta name="twitter:image" content="@yield('og_image', $logoPng)">
 
     {{-- Organization + WebSite structured data --}}
     <script type="application/ld+json">
@@ -57,8 +64,8 @@
             '@id' => url('/').'#organization',
             'name' => $settings->legal_entity_name ?: $settings->company_name,
             'url' => url('/'),
-            'logo' => asset('images/larovie-logo-dark-transparant.png'),
-            'image' => asset('images/larovie-logo-dark-transparant.png'),
+            'logo' => $logoPng,
+            'image' => $logoPng,
             'email' => $settings->company_email,
             'telephone' => $settings->company_phone,
             'address' => $settings->company_address ? [
@@ -143,7 +150,8 @@
             <div class="flex h-24 items-center justify-between gap-4">
                 <a href="{{ route('catalogue.index') }}" class="flex items-center shrink-0">
                     <img src="{{ $logo }}" alt="{{ $settings->company_name }}"
-                         width="240" height="80" class="h-16 sm:h-20 w-auto"
+                         @unless ($hasCustomLogo) width="240" height="240" @endunless
+                         class="h-16 sm:h-20 w-auto"
                          fetchpriority="high" decoding="sync">
                 </a>
 
@@ -248,7 +256,7 @@
             <div class="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
                 <div>
                     <img src="{{ $logoWhite }}" alt="{{ $settings->company_name }}"
-                         width="168" height="56" class="h-14 w-auto mb-4"
+                         width="194" height="168" class="h-14 w-auto mb-4"
                          loading="lazy" decoding="async">
                     <p class="font-display text-lg text-white/90 max-w-xs leading-snug">{{ __('shop.tagline') }}</p>
                     <p class="mt-4 inline-flex items-center gap-2 text-xs text-white/70">
