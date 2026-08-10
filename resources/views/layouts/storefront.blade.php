@@ -8,6 +8,8 @@
     $logoWhite = asset('images/larovie-logo-white-transparant.png');
     $contactTel = \App\Support\Contact::tel();
     $waLink = \App\Support\Contact::whatsappLink();
+    // Canonical is the current path without query strings; hreflang variants hang off it.
+    $canonical = url()->current();
 @endphp
 <!DOCTYPE html>
 <html lang="{{ $locale }}" dir="{{ $dir }}">
@@ -16,22 +18,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', $settings->company_name) — {{ __('shop.wholesale') }}</title>
 
-    @if ($locale === 'ar')
-        {{-- Arabic UI font: Cairo (Google Fonts CDN) --}}
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
-    @endif
+    {{-- Product imagery is served from the Shopify CDN — warm the connection early. --}}
+    <link rel="preconnect" href="https://cdn.shopify.com" crossorigin>
+    <link rel="dns-prefetch" href="https://cdn.shopify.com">
+    <meta name="theme-color" content="#3e2340">
+    <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
 
     {{-- SEO (P1 #9) --}}
     <meta name="description" content="@yield('meta_description', __('shop.meta_description_default'))">
-    <link rel="canonical" href="{{ url()->current() }}">
+    <link rel="canonical" href="{{ $canonical }}">
     @if ($settings->search_indexing_enabled)
-        <meta name="robots" content="index, follow">
+        <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
         {{-- hreflang pairs — distinct per-language URLs via ?hl= --}}
-        <link rel="alternate" hreflang="en" href="{{ url()->current() }}?hl=en">
-        <link rel="alternate" hreflang="ar" href="{{ url()->current() }}?hl=ar">
-        <link rel="alternate" hreflang="x-default" href="{{ url()->current() }}">
+        <link rel="alternate" hreflang="en" href="{{ $canonical }}?hl=en">
+        <link rel="alternate" hreflang="ar" href="{{ $canonical }}?hl=ar">
+        <link rel="alternate" hreflang="x-default" href="{{ $canonical }}">
     @else
         <meta name="robots" content="noindex, nofollow">
     @endif
@@ -41,20 +42,23 @@
     <meta property="og:site_name" content="{{ $settings->company_name }}">
     <meta property="og:title" content="@yield('title', $settings->company_name)">
     <meta property="og:description" content="@yield('meta_description', __('shop.meta_description_default'))">
-    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:url" content="{{ $canonical }}">
     <meta property="og:image" content="@yield('og_image', asset('images/larovie-logo-dark-transparant.png'))">
     <meta property="og:locale" content="{{ $locale === 'ar' ? 'ar_AE' : 'en_US' }}">
-    <meta name="twitter:card" content="summary">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="@yield('og_image', asset('images/larovie-logo-dark-transparant.png'))">
 
-    {{-- Organization structured data --}}
+    {{-- Organization + WebSite structured data --}}
     <script type="application/ld+json">
     @php
         $org = array_filter([
             '@context' => 'https://schema.org',
             '@type' => 'Organization',
+            '@id' => url('/').'#organization',
             'name' => $settings->legal_entity_name ?: $settings->company_name,
             'url' => url('/'),
             'logo' => asset('images/larovie-logo-dark-transparant.png'),
+            'image' => asset('images/larovie-logo-dark-transparant.png'),
             'email' => $settings->company_email,
             'telephone' => $settings->company_phone,
             'address' => $settings->company_address ? [
@@ -62,19 +66,51 @@
                 'streetAddress' => $settings->company_address,
                 'addressCountry' => 'AE',
             ] : null,
+            'contactPoint' => $settings->company_phone ? [
+                '@type' => 'ContactPoint',
+                'telephone' => $settings->company_phone,
+                'contactType' => 'sales',
+                'areaServed' => ['AE', 'SA', 'KW', 'QA', 'BH', 'OM'],
+                'availableLanguage' => ['en', 'ar'],
+            ] : null,
         ]);
+
+        $site = [
+            '@context' => 'https://schema.org',
+            '@type' => 'WebSite',
+            '@id' => url('/').'#website',
+            'url' => url('/'),
+            'name' => $settings->company_name,
+            'inLanguage' => $locale,
+            'publisher' => ['@id' => url('/').'#organization'],
+            'potentialAction' => [
+                '@type' => 'SearchAction',
+                'target' => [
+                    '@type' => 'EntryPoint',
+                    'urlTemplate' => route('catalogue.index').'?q={search_term_string}',
+                ],
+                'query-input' => 'required name=search_term_string',
+            ],
+        ];
     @endphp
-    {!! json_encode($org, JSON_UNESCAPED_UNICODE) !!}
+    {!! json_encode([$org, $site], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}
     </script>
 
     @if ($settings->ga4_measurement_id)
-        {{-- Analytics (P0 #5) --}}
-        <script async src="https://www.googletagmanager.com/gtag/js?id={{ $settings->ga4_measurement_id }}"></script>
+        {{-- Analytics (P0 #5). gtag.js is a ~100KB third-party script; injecting it
+             after `load` keeps it off the critical path (better LCP/TBT) while the
+             queued hits still fire, so page_view is not lost. --}}
         <script>
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
             gtag('config', '{{ $settings->ga4_measurement_id }}');
+            addEventListener('load', function () {
+                var s = document.createElement('script');
+                s.async = true;
+                s.src = 'https://www.googletagmanager.com/gtag/js?id={{ $settings->ga4_measurement_id }}';
+                document.head.appendChild(s);
+            }, { once: true });
         </script>
     @endif
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -87,6 +123,11 @@
       @inquiry-open.window="inquiryOpen = true"
       @keydown.escape.window="inquiryOpen = false; mobileNav = false">
 
+    <a href="#main"
+       class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:start-2 focus:rounded-lg focus:bg-plum focus:px-4 focus:py-2 focus:text-white">
+        {{ __('shop.skip_to_content') }}
+    </a>
+
     {{-- Announcement bar --}}
     <div class="bg-plum text-white/90 text-center text-xs sm:text-sm py-2 px-4 tracking-wide">
         {{ __('shop.announcement') }}
@@ -96,7 +137,9 @@
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div class="flex h-24 items-center justify-between gap-4">
                 <a href="{{ route('catalogue.index') }}" class="flex items-center shrink-0">
-                    <img src="{{ $logo }}" alt="{{ $settings->company_name }}" class="h-16 sm:h-20 w-auto">
+                    <img src="{{ $logo }}" alt="{{ $settings->company_name }}"
+                         width="240" height="80" class="h-16 sm:h-20 w-auto"
+                         fetchpriority="high" decoding="sync">
                 </a>
 
                 {{-- Primary nav (desktop) --}}
@@ -185,7 +228,7 @@
         </div>
     </header>
 
-    <main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
+    <main id="main" class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
         @if (session('error'))
             <div class="mb-6 rounded-xl bg-blush border border-rose-accent/30 px-4 py-3 text-rose-deep">
                 {{ session('error') }}
@@ -199,7 +242,9 @@
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14">
             <div class="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
                 <div>
-                    <img src="{{ $logoWhite }}" alt="{{ $settings->company_name }}" class="h-14 w-auto mb-4">
+                    <img src="{{ $logoWhite }}" alt="{{ $settings->company_name }}"
+                         width="168" height="56" class="h-14 w-auto mb-4"
+                         loading="lazy" decoding="async">
                     <p class="font-display text-lg text-white/90 max-w-xs leading-snug">{{ __('shop.tagline') }}</p>
                     <p class="mt-4 inline-flex items-center gap-2 text-xs text-white/70">
                         <svg class="w-4 h-4 text-rose-accent" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>

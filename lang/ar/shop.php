@@ -95,6 +95,7 @@ return [
     'nav_contact' => 'تواصل معنا',
     'nav_register' => 'حساب تجاري',
     'menu' => 'القائمة',
+    'skip_to_content' => 'تخطَّ إلى المحتوى الرئيسي',
     'call_us' => 'اتصل بنا',
     'chat_whatsapp' => 'الدردشة عبر واتساب',
     'email_us' => 'راسلنا عبر البريد',

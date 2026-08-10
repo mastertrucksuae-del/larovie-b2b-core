@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Setting;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -77,6 +78,9 @@ class ProductSyncService
         $setting->last_synced_at = now();
         $setting->save();
         Setting::clearCache();
+
+        // The catalogue changed, so the cached sitemap is stale.
+        Cache::forget('sitemap.xml');
 
         return $this->summary;
     }

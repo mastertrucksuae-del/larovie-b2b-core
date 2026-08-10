@@ -1,13 +1,24 @@
 @php
     $starting = $product->starting_price;
     $moq = $product->moq ?? optional($product->variants->first())->effective_moq ?? 1;
+    // The first few cards are above the fold — one of them is the LCP element, so
+    // they load eagerly at high priority while the rest stay lazy.
+    $priority = ($priority ?? false) === true;
+    $img = $product->display_image;
+    $srcset = \App\Support\Img::srcset($img);
 @endphp
 <a href="{{ route('catalogue.show', $product->handle) }}"
    class="group flex flex-col rounded-2xl bg-white ring-1 ring-line overflow-hidden hover:ring-plum/20 hover:shadow-[0_12px_40px_-12px_rgba(62,35,64,0.18)] transition duration-300">
     <div class="relative aspect-square bg-sand overflow-hidden">
-        @if ($product->display_image)
-            <img src="{{ $product->display_image }}" alt="{{ $product->title }}"
-                 class="img-zoom h-full w-full object-cover" loading="lazy">
+        @if ($img)
+            <img src="{{ \App\Support\Img::at($img, 400) }}"
+                 @if ($srcset) srcset="{{ $srcset }}" sizes="(min-width: 1024px) 300px, (min-width: 768px) 33vw, 50vw" @endif
+                 alt="{{ $product->title }}"
+                 width="400" height="400"
+                 class="img-zoom h-full w-full object-cover"
+                 loading="{{ $priority ? 'eager' : 'lazy' }}"
+                 fetchpriority="{{ $priority ? 'high' : 'auto' }}"
+                 decoding="{{ $priority ? 'sync' : 'async' }}">
         @endif
         @if ($starting === null)
             <span class="absolute top-3 end-3 rounded-full bg-white/85 backdrop-blur px-3 py-1 text-[11px] font-medium text-plum">

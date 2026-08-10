@@ -268,7 +268,9 @@ new class extends Component
                                 title="{{ $b['label'] }}">
                             @if (! empty($b['logo']))
                                 <img src="{{ $b['logo'] }}" alt="{{ $b['label'] }}"
-                                     class="max-h-full max-w-full object-contain" loading="lazy">
+                                     width="112" height="48"
+                                     class="max-h-full max-w-full object-contain"
+                                     loading="lazy" decoding="async">
                             @else
                                 <span class="line-clamp-2 text-center text-sm font-semibold leading-tight text-ink">{{ $b['label'] }}</span>
                             @endif
@@ -336,6 +338,8 @@ new class extends Component
                     }
                     // Products already arrive ordered contiguously by brand.
                     $groups = $this->products->groupBy(fn ($p) => (string) ($p->effective_brand ?? ''));
+                    // Running index across groups: the first row of cards is above the fold.
+                    $cardIndex = 0;
                 @endphp
                 @foreach ($groups as $brandKey => $items)
                     @php
@@ -360,7 +364,10 @@ new class extends Component
                                 @if ($logo)
                                     {{-- Same white framed tile as the slider, larger — one consistent brand mark. --}}
                                     <span class="inline-flex h-16 min-w-[8rem] max-w-[13rem] items-center justify-center rounded-xl border border-line bg-white px-5 py-2.5 transition group-hover:border-plum/40">
-                                        <img src="{{ $logo }}" alt="{{ $label }}" class="max-h-11 max-w-full object-contain" loading="lazy">
+                                        <img src="{{ $logo }}" alt="{{ $label }}"
+                                             width="160" height="44"
+                                             class="max-h-11 max-w-full object-contain"
+                                             loading="lazy" decoding="async">
                                     </span>
                                     <span class="sr-only">{{ $label }}</span>
                                 @else
@@ -375,7 +382,7 @@ new class extends Component
                         <div id="brand-grid-{{ $idx }}" x-show="open" x-collapse
                              class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-7">
                             @foreach ($items as $product)
-                                @include('catalogue.partials.product-card', ['product' => $product])
+                                @include('catalogue.partials.product-card', ['product' => $product, 'priority' => $cardIndex++ < 4])
                             @endforeach
                         </div>
                     </section>
@@ -383,7 +390,7 @@ new class extends Component
             @else
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-7">
                     @foreach ($this->products as $product)
-                        @include('catalogue.partials.product-card', ['product' => $product])
+                        @include('catalogue.partials.product-card', ['product' => $product, 'priority' => $loop->index < 4])
                     @endforeach
                 </div>
             @endif

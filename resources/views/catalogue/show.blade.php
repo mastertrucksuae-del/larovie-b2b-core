@@ -16,6 +16,8 @@
 @push('head')
     <script type="application/ld+json">
     @php
+        $startingPrice = $product->starting_price;
+
         $ld = array_filter([
             '@context' => 'https://schema.org',
             '@type' => 'Product',
@@ -24,13 +26,50 @@
             'description' => $metaDesc,
             'sku' => optional($product->variants->first())->sku,
             'category' => $product->product_type ?: null,
+            'url' => url()->current(),
             'brand' => $product->effective_brand ? [
                 '@type' => 'Brand',
                 'name' => $product->effective_brand,
             ] : null,
+            // Wholesale pricing is quote-based, so we publish the "from" price as
+            // a lower bound rather than a fixed offer.
+            'offers' => $startingPrice !== null ? [
+                '@type' => 'AggregateOffer',
+                'priceCurrency' => \App\Support\Money::currency(),
+                'lowPrice' => (string) round((float) $startingPrice, 2),
+                'offerCount' => $product->variants->count(),
+                'availability' => 'https://schema.org/InStock',
+                'businessFunction' => 'https://schema.org/Sell',
+                'eligibleCustomerType' => 'https://schema.org/Business',
+                'url' => url()->current(),
+            ] : null,
         ]);
+
+        $crumbs = [
+            '@context' => 'https://schema.org',
+            '@type' => 'BreadcrumbList',
+            'itemListElement' => array_values(array_filter([
+                [
+                    '@type' => 'ListItem',
+                    'position' => 1,
+                    'name' => __('shop.catalogue'),
+                    'item' => route('catalogue.index'),
+                ],
+                $product->effective_brand ? [
+                    '@type' => 'ListItem',
+                    'position' => 2,
+                    'name' => $product->effective_brand,
+                ] : null,
+                [
+                    '@type' => 'ListItem',
+                    'position' => $product->effective_brand ? 3 : 2,
+                    'name' => $product->title,
+                    'item' => url()->current(),
+                ],
+            ])),
+        ];
     @endphp
-    {!! json_encode($ld, JSON_UNESCAPED_UNICODE) !!}
+    {!! json_encode([$ld, $crumbs], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}
     </script>
 @endpush
 
@@ -50,7 +89,13 @@
         <div>
             <div class="aspect-square rounded-3xl bg-sand overflow-hidden ring-1 ring-line">
                 @if ($product->display_image)
-                    <img src="{{ $product->display_image }}" alt="{{ $product->title }}" class="h-full w-full object-cover">
+                    @php($heroSrcset = \App\Support\Img::srcset($product->display_image, \App\Support\Img::HERO_WIDTHS))
+                    <img src="{{ \App\Support\Img::at($product->display_image, 800) }}"
+                         @if ($heroSrcset) srcset="{{ $heroSrcset }}" sizes="(min-width: 1024px) 600px, 100vw" @endif
+                         alt="{{ $product->title }}"
+                         width="800" height="800"
+                         class="h-full w-full object-cover"
+                         fetchpriority="high" decoding="sync">
                 @endif
             </div>
             @php($thumbs = $product->variants->map->display_image->filter()->unique()->take(5))
@@ -58,7 +103,9 @@
                 <div class="mt-4 grid grid-cols-5 gap-3">
                     @foreach ($thumbs as $thumb)
                         <div class="aspect-square rounded-xl bg-sand overflow-hidden ring-1 ring-line">
-                            <img src="{{ $thumb }}" alt="" class="h-full w-full object-cover">
+                            <img src="{{ \App\Support\Img::at($thumb, 200) }}" alt=""
+                                 width="200" height="200" class="h-full w-full object-cover"
+                                 loading="lazy" decoding="async">
                         </div>
                     @endforeach
                 </div>

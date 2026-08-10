@@ -95,6 +95,7 @@ return [
     'nav_contact' => 'Contact',
     'nav_register' => 'Business account',
     'menu' => 'Menu',
+    'skip_to_content' => 'Skip to main content',
     'call_us' => 'Call us',
     'chat_whatsapp' => 'Chat on WhatsApp',
     'email_us' => 'Email us',

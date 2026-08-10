@@ -97,7 +97,7 @@ class ManageSettings extends Page
                     ]),
 
                 Section::make('Search indexing')
-                    ->description('Keep OFF until the trust & contact pages are live and founder-approved. When ON, the storefront becomes indexable and appears in the sitemap.')
+                    ->description('ON: the storefront is indexable, robots.txt allows crawling and /sitemap.xml is served. OFF: noindex/nofollow, robots.txt disallows everything and the sitemap 404s. Leave ON unless you need to pull the site out of search.')
                     ->schema([
                         Toggle::make('search_indexing_enabled')
                             ->label('Allow search engines to index the storefront'),
