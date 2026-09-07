@@ -178,6 +178,31 @@ tests/Feature/HomePageTest.php (new)
   the moment it ran. The homepage section reads the table and falls back to the shipped list
   if it is ever emptied, so it can never render as a bare heading.
 
+### Bug: the hero image uploader hung on "Waiting for size" (same day)
+**Cause, and it was mine.** `WebpUpload` advertised `maxSize(12 * 1024)` — 12MB —
+while this PHP allows `upload_max_filesize = 2M` (and `post_max_size = 8M`).
+FilePond accepted the file client-side and POSTed it; PHP discarded it before any
+application code ran, so the request arrived with no file at all, Livewire never
+returned a temporary file, and the widget waited forever. Nothing reached the log,
+because nothing in the app ever executed.
+
+**Fix:** the field now derives its own ceiling from the real ini values
+(`min(upload_max_filesize, post_max_size)` less headroom for the rest of the
+multipart body, clamped to a sane range). Locally that resolves to 1.8 MB, and the
+limit is stated in the field's helper text, so an oversized file fails immediately
+with a clear message instead of hanging. A regression test asserts the advertised
+limit can never exceed what PHP accepts.
+
+**Still needs doing (environment, not code):** 1.8 MB is below a typical hero
+photograph. Raising it is a php.ini change on both this machine and the server —
+`upload_max_filesize = 16M`, `post_max_size = 20M`, plus `client_max_body_size 20m`
+in nginx. Documented in `deploy/README.md`; not applied here because php.ini is
+system-wide and outside the project.
+
+- **Tests:** 163 passing / 973 assertions.
+- **Files modified:** app/Filament/Support/WebpUpload.php, deploy/README.md,
+  tests/Feature/ImageProcessingTest.php
+
 ### Final end-to-end test, WebP uploads, production pass (same day)
 - **End-to-end journey test.** Walks the real paths rather than repeating unit coverage: a
   visitor browsing with public pricing, being stopped at the order, registering, waiting on

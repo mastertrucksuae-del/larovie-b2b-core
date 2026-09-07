@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Support\WebpUpload;
 use App\Support\ImageProcessor;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -106,6 +107,34 @@ class ImageProcessingTest extends TestCase
 
         $this->assertStringEndsNotWith('.webp', $path);
         Storage::disk('public')->assertExists($path);
+    }
+
+    public function test_the_upload_field_never_advertises_more_than_php_accepts(): void
+    {
+        // The bug this guards: the field offered 12MB while PHP allowed 2MB, so
+        // an oversized file was discarded before any code ran and the uploader
+        // hung on "Waiting for size" with no error at all.
+        $advertised = WebpUpload::serverLimitKb() * 1024;
+
+        foreach (['upload_max_filesize', 'post_max_size'] as $key) {
+            $raw = trim((string) ini_get($key));
+
+            if ($raw === '' || $raw === '-1' || $raw === '0') {
+                continue;
+            }
+
+            $bytes = (int) $raw * match (strtolower(substr($raw, -1))) {
+                'g' => 1024 ** 3, 'm' => 1024 ** 2, 'k' => 1024, default => 1,
+            };
+
+            $this->assertLessThanOrEqual($bytes, $advertised, "Field limit exceeds {$key}.");
+        }
+    }
+
+    public function test_the_advertised_limit_is_always_usable(): void
+    {
+        $this->assertGreaterThanOrEqual(256, WebpUpload::serverLimitKb());
+        $this->assertNotSame('', WebpUpload::humanLimit());
     }
 
     public function test_a_file_that_is_not_an_image_is_never_mangled(): void
