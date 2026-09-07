@@ -57,10 +57,13 @@
     <meta property="og:title" content="@yield('title', $settings->company_name)">
     <meta property="og:description" content="@yield('meta_description', __('shop.meta_description_default'))">
     <meta property="og:url" content="{{ $canonical }}">
-    <meta property="og:image" content="@yield('og_image', $logoPng)">
+    {{-- Scrapers need an absolute URL. `url()` leaves an already-absolute one
+         alone, so this works whether the page yielded a stored-file path or a
+         full URL. --}}
+    <meta property="og:image" content="{{ url(trim($__env->yieldContent('og_image', $logoPng))) }}">
     <meta property="og:locale" content="{{ $locale === 'ar' ? 'ar_AE' : 'en_US' }}">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="@yield('og_image', $logoPng)">
+    <meta name="twitter:image" content="{{ url(trim($__env->yieldContent('og_image', $logoPng))) }}">
 
     {{-- Organization + WebSite structured data --}}
     <script type="application/ld+json">
