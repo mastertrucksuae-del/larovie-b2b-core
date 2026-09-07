@@ -178,6 +178,36 @@ tests/Feature/HomePageTest.php (new)
   the moment it ran. The homepage section reads the table and falls back to the shipped list
   if it is ever emptied, so it can never render as a bare heading.
 
+### Catalogue defaults moved out of .env (same day)
+Changing the default MOQ previously needed a deploy and a server login, for a
+number only the founder is qualified to set. Settings now carries it, plus the
+two other non-secret knobs that lived beside it in `.env`:
+
+- **Default minimum order quantity** — applied to each product as it is imported.
+- **Products per request** and **rate-limit safety margin**, under a collapsed
+  "Shopify sync (advanced)" section, for when a sync times out or gets throttled.
+
+All three are nullable and fall back to the existing `config('shopify.*')` values,
+so a fresh install behaves exactly as before, `.env` keeps working as the default,
+and an accidentally-cleared field reverts to the shipped number instead of taking
+the sync down. Values are clamped to what the API actually accepts — a
+fat-fingered page size of 9999 becomes 250 rather than failing every sync — and a
+zero is treated as unset, because a MOQ of zero would let a buyer order nothing.
+
+**Deliberately left in .env:** the Shopify admin token, API key, API secret and
+webhook secret. Those are credentials, not preferences. Moving them into a
+database row the admin panel renders would widen their blast radius from "whoever
+can read the server" to "whoever can reach an admin session", and Shopify rotates
+them rather than the founder choosing them. A test asserts none of them appear in
+the settings page HTML. The same reasoning excludes DB, mail, AWS and Redis
+credentials.
+
+- **Tests:** 222 passing / 1,113 assertions (was 215).
+- **Files added:** tests/Feature/CatalogueDefaultsTest.php,
+  migration 2026_09_07_000010_add_catalogue_defaults_to_settings_table
+- **Files modified:** app/Models/Setting.php, app/Filament/Pages/ManageSettings.php,
+  app/Services/Shopify/{ProductSyncService,ShopifyClient}.php
+
 ### Phone entry: country picker + libphonenumber (same day)
 Mobile fields now pair a country picker with a plain number box, on all three
 forms (cart, registration, contact).

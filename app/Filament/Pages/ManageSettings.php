@@ -213,6 +213,34 @@ class ManageSettings extends Page
                         Textarea::make('quote_footer_note')->rows(2)->columnSpanFull(),
                     ]),
 
+                Section::make('Catalogue defaults')
+                    ->description('Applied to newly imported products. Existing products keep whatever you set on them.')
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make('default_moq')
+                            ->label('Default minimum order quantity')
+                            ->helperText('Given to each product as it is imported from Shopify. Change it per product afterwards under Products.')
+                            ->numeric()->minValue(1)->maxValue(10000)
+                            ->placeholder((string) config('shopify.default_moq', 12)),
+                    ]),
+
+                Section::make('Shopify sync (advanced)')
+                    ->description('Leave blank unless a sync is timing out or hitting Shopify rate limits.')
+                    ->columns(2)
+                    ->collapsed()
+                    ->schema([
+                        TextInput::make('sync_page_size')
+                            ->label('Products per request')
+                            ->helperText('Lower this if the sync times out. Shopify caps it at 250.')
+                            ->numeric()->minValue(1)->maxValue(250)
+                            ->placeholder((string) config('shopify.page_size', 50)),
+                        TextInput::make('sync_cost_floor')
+                            ->label('Rate-limit safety margin')
+                            ->helperText('The sync pauses when the remaining Shopify API budget drops below this. Raise it if you see throttling errors.')
+                            ->numeric()->minValue(0)->maxValue(2000)
+                            ->placeholder((string) config('shopify.cost_floor', 200)),
+                    ]),
+
                 Section::make('WhatsApp message templates')
                     ->description('Placeholders: {customer_name} {reference} {quote_number} {quote_link}')
                     ->schema([

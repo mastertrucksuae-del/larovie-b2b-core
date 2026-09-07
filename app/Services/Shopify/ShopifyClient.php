@@ -155,7 +155,7 @@ class ShopifyClient
 
         $available = (float) ($throttle['currentlyAvailable'] ?? 1000);
         $restoreRate = (float) ($throttle['restoreRate'] ?? 50);
-        $floor = (float) config('shopify.cost_floor', 200);
+        $floor = (float) \App\Models\Setting::current()->effectiveSyncCostFloor();
 
         if ($available < $floor && $restoreRate > 0) {
             $deficit = $floor - $available;
