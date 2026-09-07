@@ -178,6 +178,38 @@ tests/Feature/HomePageTest.php (new)
   the moment it ran. The homepage section reads the table and falls back to the shipped list
   if it is ever emptied, so it can never render as a bare heading.
 
+### Licence preview modal + settings tabs (same day)
+- **Trade licence opens in a modal** on the business account view page instead of
+  downloading. Reviewing an application means reading the licence, and a round
+  trip through the downloads folder for every applicant is friction. Images
+  render in a scrollable `<img>` (shrinking a licence to fit defeats the point —
+  the registration number has to stay readable); anything else goes in a frame so
+  the browser's own PDF viewer handles paging and zoom, with no JS library.
+  A "Download original" link stays beside it for browsers that cannot render the
+  file inline.
+
+  The file stays on the **private** disk behind the existing auth-guarded route;
+  `?inline=1` only changes the Content-Disposition. It is sent `no-store`, because
+  another company's legal document must never sit in a shared cache. Tests cover
+  inline vs download, the auth guard, and a missing file 404ing rather than
+  erroring.
+
+- **Settings split into five tabs**: Brand & contact, Homepage, Accounts & orders,
+  Catalogue, SEO & analytics. The page carried ~120 homepage copy fields on top of
+  everything else and, as one column, was a long scroll with no landmarks. The tab
+  is kept in the query string, so a link to a specific tab survives a reload.
+
+  Restructured by parsing the section boundaries rather than by hand, with an
+  assertion that every section lands in exactly one tab and none is dropped —
+  then verified field by field that nothing went missing in the move.
+
+- **Tests:** 227 passing / 1,123 assertions (was 222).
+- **Files added:** resources/views/filament/licence-preview.blade.php
+- **Files modified:** app/Http/Controllers/BusinessAccountController.php,
+  app/Filament/Pages/ManageSettings.php,
+  app/Filament/Resources/BusinessAccounts/{Pages/ViewBusinessAccount,Schemas/BusinessAccountInfolist}.php,
+  tests/Feature/BusinessAccountReviewTest.php
+
 ### Catalogue defaults moved out of .env (same day)
 Changing the default MOQ previously needed a deploy and a server login, for a
 number only the founder is qualified to set. Settings now carries it, plus the

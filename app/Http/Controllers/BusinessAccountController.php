@@ -151,10 +151,42 @@ class BusinessAccountController extends Controller
     }
 
     /** Admin-only download of a KYC trade licence (guarded by the web/admin guard). */
-    public function licence(BusinessAccount $account): \Symfony\Component\HttpFoundation\StreamedResponse
+    /**
+     * Stream a KYC trade licence to an admin.
+     *
+     * Stays on the private disk behind this auth-guarded route — the file is a
+     * legal document belonging to the applicant and must never be reachable by
+     * URL alone. `?inline=1` renders it in the review modal instead of
+     * downloading, so an admin can check it without a round trip to their
+     * downloads folder.
+     */
+    public function licence(Request $request, BusinessAccount $account): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         abort_unless($account->trade_licence_path, 404);
 
-        return \Illuminate\Support\Facades\Storage::disk('local')->download($account->trade_licence_path);
+        $disk = \Illuminate\Support\Facades\Storage::disk('local');
+
+        abort_unless($disk->exists($account->trade_licence_path), 404);
+
+        if (! $request->boolean('inline')) {
+            return $disk->download($account->trade_licence_path);
+        }
+
+        return $disk->response($account->trade_licence_path, null, [
+            'Content-Disposition' => 'inline',
+            // A licence is another company's document; never let it be cached
+            // by a shared proxy.
+            'Cache-Control' => 'private, no-store',
+        ]);
+    }
+
+    /** True when the stored licence can be shown in an <img> rather than a frame. */
+    public static function licenceIsImage(BusinessAccount $account): bool
+    {
+        return in_array(
+            strtolower(pathinfo((string) $account->trade_licence_path, PATHINFO_EXTENSION)),
+            ['jpg', 'jpeg', 'png', 'webp', 'gif'],
+            true,
+        );
     }
 }

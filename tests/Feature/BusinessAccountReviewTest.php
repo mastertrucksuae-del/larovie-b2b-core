@@ -323,6 +323,73 @@ class BusinessAccountReviewTest extends TestCase
             ->assertRedirect(route('home'));
     }
 
+    // ── Trade licence viewing ───────────────────────────────────────────────
+
+    private function accountWithLicence(string $filename = 'licence.pdf'): BusinessAccount
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+        \Illuminate\Support\Facades\Storage::disk('local')->put("trade-licences/{$filename}", 'PDFBYTES');
+
+        $account = $this->account();
+        $account->update(['trade_licence_path' => "trade-licences/{$filename}"]);
+
+        return $account->refresh();
+    }
+
+    public function test_an_admin_can_view_the_licence_inline(): void
+    {
+        $account = $this->accountWithLicence();
+
+        $response = $this->actingAs(User::factory()->create(), 'web')
+            ->get(route('business-account.licence', [$account, 'inline' => 1]))
+            ->assertOk();
+
+        $this->assertStringContainsString('inline', (string) $response->headers->get('Content-Disposition'));
+        // Another company's legal document must never sit in a shared cache.
+        $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
+    }
+
+    public function test_the_licence_still_downloads_by_default(): void
+    {
+        $account = $this->accountWithLicence();
+
+        $response = $this->actingAs(User::factory()->create(), 'web')
+            ->get(route('business-account.licence', $account))
+            ->assertOk();
+
+        $this->assertStringContainsString('attachment', (string) $response->headers->get('Content-Disposition'));
+    }
+
+    public function test_the_licence_is_never_reachable_without_an_admin_session(): void
+    {
+        $account = $this->accountWithLicence();
+
+        $this->get(route('business-account.licence', [$account, 'inline' => 1]))
+            ->assertRedirect(route('login'));
+    }
+
+    public function test_a_missing_licence_file_404s_rather_than_erroring(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+        $account = $this->account();
+        $account->update(['trade_licence_path' => 'trade-licences/gone.pdf']);
+
+        $this->actingAs(User::factory()->create(), 'web')
+            ->get(route('business-account.licence', $account))
+            ->assertNotFound();
+    }
+
+    public function test_image_licences_are_detected_for_the_preview(): void
+    {
+        // Images render in an <img>, everything else in a frame.
+        $this->assertTrue(\App\Http\Controllers\BusinessAccountController::licenceIsImage(
+            tap($this->account(), fn ($a) => $a->trade_licence_path = 'x/licence.JPG')
+        ));
+        $this->assertFalse(\App\Http\Controllers\BusinessAccountController::licenceIsImage(
+            tap($this->account('approved', 'pdf@example.test'), fn ($a) => $a->trade_licence_path = 'x/licence.pdf')
+        ));
+    }
+
     // ── The admin view page ─────────────────────────────────────────────────
 
     public function test_the_view_page_renders_the_customer_and_their_numbers(): void

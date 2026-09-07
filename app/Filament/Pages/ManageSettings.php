@@ -18,6 +18,8 @@ use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 
@@ -58,194 +60,212 @@ class ManageSettings extends Page
         return $schema
             ->statePath('data')
             ->components([
-                Section::make('Branding')
-                    ->columns(2)
-                    ->schema([
-                        TextInput::make('company_name')->required(),
-                        TextInput::make('legal_entity_name')
-                            ->label('Registered legal entity name')
-                            ->helperText('Shown in the footer & Contact page for buyer credibility.'),
-                        ColorPicker::make('brand_color'),
-                        WebpUpload::make('logo_path', 'branding')
-                            ->label('Logo')
-                            ->columnSpanFull(),
-                        TextInput::make('company_email')->email(),
-                        TextInput::make('company_phone')->label('Phone (tap-to-call)'),
-                        TextInput::make('company_whatsapp')
-                            ->label('WhatsApp Business number')
-                            ->helperText('Used for the wa.me tap-to-chat links. Falls back to phone if empty.'),
-                        Textarea::make('company_address')->rows(2)->columnSpanFull(),
-                        TextInput::make('trn')->label('Tax registration number (TRN)'),
-                        TextInput::make('trade_licence_number')->label('Trade licence number'),
-                    ]),
-
-                Section::make('Contact & location')
-                    ->columns(2)
-                    ->schema([
-                        TextInput::make('contact_hours')
-                            ->label('Business hours')
-                            ->placeholder('Sun–Thu, 9am–6pm GST')
-                            ->columnSpanFull(),
-                        Textarea::make('google_maps_embed')
-                            ->label('Google Maps embed URL')
-                            ->helperText('The map "src" URL from Google Maps → Share → Embed a map. Rendered on the Contact page.')
-                            ->rows(2)
-                            ->columnSpanFull(),
-                    ]),
-
-                Section::make('Authenticity guarantee')
-                    ->description('Founder-approved copy for the Authenticity page. State only what is verifiably true.')
-                    ->schema([
-                        Textarea::make('authenticity_statement_en')->label('English')->rows(4),
-                        Textarea::make('authenticity_statement_ar')->label('Arabic')->rows(4),
-                    ]),
-
-                Section::make('Homepage')
-                    ->description('Everything on the public homepage. Leave a field blank to use the built-in wording for that language — clearing a box restores the default rather than emptying the section.')
-                    ->schema([
-                        WebpUpload::make('homepage_hero_image_path', 'homepage')
-                            ->label('Hero image')
-                            ->helperText('Replaces the automatic four-product collage. Landscape, roughly 4:3. Converted to WebP and resized.')
-                            ->columnSpanFull(),
-                        TextInput::make('homepage_featured_count')
-                            ->label('Featured products shown (automatic mode)')
-                            ->helperText('Only used when no products are picked below.')
-                            ->numeric()->minValue(4)->maxValue(24)->default(8),
-
-                        Select::make('homepage_featured_product_ids')
-                            ->label('Featured products')
-                            ->helperText('Leave empty to show the earliest products that have images. Picked products appear in the order you add them.')
-                            ->multiple()
-                            ->searchable()
-                            // Searched rather than listing every option: the
-                            // catalogue runs to hundreds of products and
-                            // rendering them all would bloat the page.
-                            ->getSearchResultsUsing(fn (string $search) => Product::query()
-                                ->publiclyVisible()
-                                ->where('title', 'like', '%'.$search.'%')
-                                ->orderBy('title')
-                                ->limit(50)
-                                ->pluck('title', 'id')
-                                ->all())
-                            ->getOptionLabelsUsing(fn (array $values) => Product::query()
-                                ->whereIn('id', $values)
-                                ->pluck('title', 'id')
-                                ->all())
-                            ->columnSpanFull(),
-
-                        Select::make('homepage_featured_category_ids')
-                            ->label('Featured categories')
-                            ->helperText('Leave empty to show your visible categories in their Categories-page order. Only categories switched on there can be picked.')
-                            ->multiple()
-                            ->searchable()
-                            ->options(fn () => Category::query()
-                                ->visible()
-                                ->pluck('title', 'id')
-                                ->all())
-                            ->columnSpanFull(),
-
-                        Select::make('homepage_featured_brands')
-                            ->label('Featured brands')
-                            ->helperText('Leave empty to show the brands with the most products. A brand with nothing in stock is skipped.')
-                            ->multiple()
-                            ->searchable()
-                            ->options(fn () => self::brandOptions())
-                            ->columnSpanFull(),
-
-                        Section::make('Sections shown')
-                            ->description('The hero and trust strip always sit at the top of the page.')
-                            ->columns(3)
-                            ->schema(self::sectionToggles()),
-
-                        Section::make('Section order')
-                            ->description('Drag to change the order these sections appear down the homepage.')
+                // The page carries ~120 homepage copy fields on top of everything
+                // else; as one column it was a scroll with no landmarks. Grouped so
+                // each tab answers one question.
+                Tabs::make()
+                    ->columnSpanFull()
+                    ->persistTabInQueryString()
+                    ->tabs([
+                        Tab::make('Brand & contact')
+                            ->icon('heroicon-o-identification')
                             ->schema([
-                                Repeater::make('homepage_section_order')
-                                    ->hiddenLabel()
-                                    ->simple(
-                                        Select::make('section')
-                                            ->options(self::sectionLabels())
-                                            ->required()
-                                    )
-                                    ->addable(false)
-                                    ->deletable(false)
-                                    ->reorderable()
-                                    ->columnSpanFull(),
+                                Section::make('Branding')
+                                    ->columns(2)
+                                    ->schema([
+                                        TextInput::make('company_name')->required(),
+                                        TextInput::make('legal_entity_name')
+                                            ->label('Registered legal entity name')
+                                            ->helperText('Shown in the footer & Contact page for buyer credibility.'),
+                                        ColorPicker::make('brand_color'),
+                                        WebpUpload::make('logo_path', 'branding')
+                                            ->label('Logo')
+                                            ->columnSpanFull(),
+                                        TextInput::make('company_email')->email(),
+                                        TextInput::make('company_phone')->label('Phone (tap-to-call)'),
+                                        TextInput::make('company_whatsapp')
+                                            ->label('WhatsApp Business number')
+                                            ->helperText('Used for the wa.me tap-to-chat links. Falls back to phone if empty.'),
+                                        Textarea::make('company_address')->rows(2)->columnSpanFull(),
+                                        TextInput::make('trn')->label('Tax registration number (TRN)'),
+                                        TextInput::make('trade_licence_number')->label('Trade licence number'),
+                                    ]),
+                                Section::make('Contact & location')
+                                    ->columns(2)
+                                    ->schema([
+                                        TextInput::make('contact_hours')
+                                            ->label('Business hours')
+                                            ->placeholder('Sun–Thu, 9am–6pm GST')
+                                            ->columnSpanFull(),
+                                        Textarea::make('google_maps_embed')
+                                            ->label('Google Maps embed URL')
+                                            ->helperText('The map "src" URL from Google Maps → Share → Embed a map. Rendered on the Contact page.')
+                                            ->rows(2)
+                                            ->columnSpanFull(),
+                                    ]),
+                                Section::make('Authenticity guarantee')
+                                    ->description('Founder-approved copy for the Authenticity page. State only what is verifiably true.')
+                                    ->schema([
+                                        Textarea::make('authenticity_statement_en')->label('English')->rows(4),
+                                        Textarea::make('authenticity_statement_ar')->label('Arabic')->rows(4),
+                                    ]),
                             ]),
+                        Tab::make('Homepage')
+                            ->icon('heroicon-o-home')
+                            ->schema([
+                                Section::make('Homepage')
+                                    ->description('Everything on the public homepage. Leave a field blank to use the built-in wording for that language — clearing a box restores the default rather than emptying the section.')
+                                    ->schema([
+                                        WebpUpload::make('homepage_hero_image_path', 'homepage')
+                                            ->label('Hero image')
+                                            ->helperText('Replaces the automatic four-product collage. Landscape, roughly 4:3. Converted to WebP and resized.')
+                                            ->columnSpanFull(),
+                                        TextInput::make('homepage_featured_count')
+                                            ->label('Featured products shown (automatic mode)')
+                                            ->helperText('Only used when no products are picked below.')
+                                            ->numeric()->minValue(4)->maxValue(24)->default(8),
 
-                        ...self::copyFields(),
-                    ]),
+                                        Select::make('homepage_featured_product_ids')
+                                            ->label('Featured products')
+                                            ->helperText('Leave empty to show the earliest products that have images. Picked products appear in the order you add them.')
+                                            ->multiple()
+                                            ->searchable()
+                                            // Searched rather than listing every option: the
+                                            // catalogue runs to hundreds of products and
+                                            // rendering them all would bloat the page.
+                                            ->getSearchResultsUsing(fn (string $search) => Product::query()
+                                                ->publiclyVisible()
+                                                ->where('title', 'like', '%'.$search.'%')
+                                                ->orderBy('title')
+                                                ->limit(50)
+                                                ->pluck('title', 'id')
+                                                ->all())
+                                            ->getOptionLabelsUsing(fn (array $values) => Product::query()
+                                                ->whereIn('id', $values)
+                                                ->pluck('title', 'id')
+                                                ->all())
+                                            ->columnSpanFull(),
 
-                Section::make('Measurement & notifications')
-                    ->columns(2)
-                    ->schema([
-                        TextInput::make('notification_email')
-                            ->label('New-inquiry alert email')
-                            ->email()
-                            ->helperText('Instant email on every new inquiry. Falls back to the company email.'),
-                        TextInput::make('ga4_measurement_id')
-                            ->label('GA4 Measurement ID')
-                            ->placeholder('G-XXXXXXXXXX')
-                            ->helperText('The gtag.js snippet only loads when this is set.'),
-                    ]),
+                                        Select::make('homepage_featured_category_ids')
+                                            ->label('Featured categories')
+                                            ->helperText('Leave empty to show your visible categories in their Categories-page order. Only categories switched on there can be picked.')
+                                            ->multiple()
+                                            ->searchable()
+                                            ->options(fn () => Category::query()
+                                                ->visible()
+                                                ->pluck('title', 'id')
+                                                ->all())
+                                            ->columnSpanFull(),
 
-                Section::make('Business accounts')
-                    ->description('Controls what happens when a customer registers on the storefront.')
-                    ->schema([
-                        Toggle::make('require_account_review')
-                            ->label('Require manual review before an account is approved')
-                            ->helperText('ON: registrations arrive as "Pending review" and wait for you to approve them here. OFF: new accounts are approved the moment they register and can see wholesale pricing straight away. Either way, only approved accounts see prices.'),
-                    ]),
+                                        Select::make('homepage_featured_brands')
+                                            ->label('Featured brands')
+                                            ->helperText('Leave empty to show the brands with the most products. A brand with nothing in stock is skipped.')
+                                            ->multiple()
+                                            ->searchable()
+                                            ->options(fn () => self::brandOptions())
+                                            ->columnSpanFull(),
 
-                Section::make('Search indexing')
-                    ->description('ON: the storefront is indexable, robots.txt allows crawling and /sitemap.xml is served. OFF: noindex/nofollow, robots.txt disallows everything and the sitemap 404s. Leave ON unless you need to pull the site out of search.')
-                    ->schema([
-                        Toggle::make('search_indexing_enabled')
-                            ->label('Allow search engines to index the storefront'),
-                    ]),
+                                        Section::make('Sections shown')
+                                            ->description('The hero and trust strip always sit at the top of the page.')
+                                            ->columns(3)
+                                            ->schema(self::sectionToggles()),
 
-                Section::make('Quote configuration')
-                    ->columns(2)
-                    ->schema([
-                        TextInput::make('default_currency')->default('AED')->maxLength(3),
-                        TextInput::make('quote_validity_days')->numeric()->minValue(1)->default(14),
-                        Textarea::make('quote_terms')->rows(3)->columnSpanFull(),
-                        Textarea::make('quote_footer_note')->rows(2)->columnSpanFull(),
-                    ]),
+                                        Section::make('Section order')
+                                            ->description('Drag to change the order these sections appear down the homepage.')
+                                            ->schema([
+                                                Repeater::make('homepage_section_order')
+                                                    ->hiddenLabel()
+                                                    ->simple(
+                                                        Select::make('section')
+                                                            ->options(self::sectionLabels())
+                                                            ->required()
+                                                    )
+                                                    ->addable(false)
+                                                    ->deletable(false)
+                                                    ->reorderable()
+                                                    ->columnSpanFull(),
+                                            ]),
 
-                Section::make('Catalogue defaults')
-                    ->description('Applied to newly imported products. Existing products keep whatever you set on them.')
-                    ->columns(2)
-                    ->schema([
-                        TextInput::make('default_moq')
-                            ->label('Default minimum order quantity')
-                            ->helperText('Given to each product as it is imported from Shopify. Change it per product afterwards under Products.')
-                            ->numeric()->minValue(1)->maxValue(10000)
-                            ->placeholder((string) config('shopify.default_moq', 12)),
-                    ]),
-
-                Section::make('Shopify sync (advanced)')
-                    ->description('Leave blank unless a sync is timing out or hitting Shopify rate limits.')
-                    ->columns(2)
-                    ->collapsed()
-                    ->schema([
-                        TextInput::make('sync_page_size')
-                            ->label('Products per request')
-                            ->helperText('Lower this if the sync times out. Shopify caps it at 250.')
-                            ->numeric()->minValue(1)->maxValue(250)
-                            ->placeholder((string) config('shopify.page_size', 50)),
-                        TextInput::make('sync_cost_floor')
-                            ->label('Rate-limit safety margin')
-                            ->helperText('The sync pauses when the remaining Shopify API budget drops below this. Raise it if you see throttling errors.')
-                            ->numeric()->minValue(0)->maxValue(2000)
-                            ->placeholder((string) config('shopify.cost_floor', 200)),
-                    ]),
-
-                Section::make('WhatsApp message templates')
-                    ->description('Placeholders: {customer_name} {reference} {quote_number} {quote_link}')
-                    ->schema([
-                        Textarea::make('whatsapp_message_template_en')->label('English')->rows(3),
-                        Textarea::make('whatsapp_message_template_ar')->label('Arabic')->rows(3),
+                                        ...self::copyFields(),
+                                    ]),
+                            ]),
+                        Tab::make('Accounts & orders')
+                            ->icon('heroicon-o-shopping-bag')
+                            ->schema([
+                                Section::make('Business accounts')
+                                    ->description('Controls what happens when a customer registers on the storefront.')
+                                    ->schema([
+                                        Toggle::make('require_account_review')
+                                            ->label('Require manual review before an account is approved')
+                                            ->helperText('ON: registrations arrive as "Pending review" and wait for you to approve them here. OFF: new accounts are approved the moment they register and can see wholesale pricing straight away. Either way, only approved accounts see prices.'),
+                                    ]),
+                                Section::make('Quote configuration')
+                                    ->columns(2)
+                                    ->schema([
+                                        TextInput::make('default_currency')->default('AED')->maxLength(3),
+                                        TextInput::make('quote_validity_days')->numeric()->minValue(1)->default(14),
+                                        Textarea::make('quote_terms')->rows(3)->columnSpanFull(),
+                                        Textarea::make('quote_footer_note')->rows(2)->columnSpanFull(),
+                                    ]),
+                                Section::make('WhatsApp message templates')
+                                    ->description('Placeholders: {customer_name} {reference} {quote_number} {quote_link}')
+                                    ->schema([
+                                        Textarea::make('whatsapp_message_template_en')->label('English')->rows(3),
+                                        Textarea::make('whatsapp_message_template_ar')->label('Arabic')->rows(3),
+                                    ]),
+                            ]),
+                        Tab::make('Catalogue')
+                            ->icon('heroicon-o-squares-2x2')
+                            ->schema([
+                                Section::make('Catalogue defaults')
+                                    ->description('Applied to newly imported products. Existing products keep whatever you set on them.')
+                                    ->columns(2)
+                                    ->schema([
+                                        TextInput::make('default_moq')
+                                            ->label('Default minimum order quantity')
+                                            ->helperText('Given to each product as it is imported from Shopify. Change it per product afterwards under Products.')
+                                            ->numeric()->minValue(1)->maxValue(10000)
+                                            ->placeholder((string) config('shopify.default_moq', 12)),
+                                    ]),
+                                Section::make('Shopify sync (advanced)')
+                                    ->description('Leave blank unless a sync is timing out or hitting Shopify rate limits.')
+                                    ->columns(2)
+                                    ->collapsed()
+                                    ->schema([
+                                        TextInput::make('sync_page_size')
+                                            ->label('Products per request')
+                                            ->helperText('Lower this if the sync times out. Shopify caps it at 250.')
+                                            ->numeric()->minValue(1)->maxValue(250)
+                                            ->placeholder((string) config('shopify.page_size', 50)),
+                                        TextInput::make('sync_cost_floor')
+                                            ->label('Rate-limit safety margin')
+                                            ->helperText('The sync pauses when the remaining Shopify API budget drops below this. Raise it if you see throttling errors.')
+                                            ->numeric()->minValue(0)->maxValue(2000)
+                                            ->placeholder((string) config('shopify.cost_floor', 200)),
+                                    ]),
+                            ]),
+                        Tab::make('SEO & analytics')
+                            ->icon('heroicon-o-chart-bar')
+                            ->schema([
+                                Section::make('Search indexing')
+                                    ->description('ON: the storefront is indexable, robots.txt allows crawling and /sitemap.xml is served. OFF: noindex/nofollow, robots.txt disallows everything and the sitemap 404s. Leave ON unless you need to pull the site out of search.')
+                                    ->schema([
+                                        Toggle::make('search_indexing_enabled')
+                                            ->label('Allow search engines to index the storefront'),
+                                    ]),
+                                Section::make('Measurement & notifications')
+                                    ->columns(2)
+                                    ->schema([
+                                        TextInput::make('notification_email')
+                                            ->label('New-inquiry alert email')
+                                            ->email()
+                                            ->helperText('Instant email on every new inquiry. Falls back to the company email.'),
+                                        TextInput::make('ga4_measurement_id')
+                                            ->label('GA4 Measurement ID')
+                                            ->placeholder('G-XXXXXXXXXX')
+                                            ->helperText('The gtag.js snippet only loads when this is set.'),
+                                    ]),
+                            ]),
                     ]),
             ]);
     }

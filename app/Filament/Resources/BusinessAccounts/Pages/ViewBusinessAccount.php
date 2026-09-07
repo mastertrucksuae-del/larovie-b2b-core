@@ -4,7 +4,9 @@ namespace App\Filament\Resources\BusinessAccounts\Pages;
 
 use App\Filament\Resources\BusinessAccounts\BusinessAccountResource;
 use App\Filament\Resources\BusinessAccounts\Concerns\ReviewsBusinessAccount;
+use App\Models\BusinessAccount;
 use App\Support\AccountInsights;
+use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 
@@ -22,6 +24,21 @@ class ViewBusinessAccount extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            // Reviewing an application means reading the licence, so it opens
+            // in place rather than sending the reviewer to their downloads.
+            Action::make('viewLicence')
+                ->label('View trade licence')
+                ->icon('heroicon-o-document-magnifying-glass')
+                ->color('gray')
+                ->visible(fn (BusinessAccount $record) => filled($record->trade_licence_path))
+                ->modalHeading(fn (BusinessAccount $record) => 'Trade licence — '.$record->company_name)
+                ->modalContent(fn (BusinessAccount $record) => view(
+                    'filament.licence-preview',
+                    ['record' => $record],
+                ))
+                ->modalWidth('4xl')
+                ->modalSubmitAction(false)
+                ->modalCancelActionLabel('Close'),
             ...$this->reviewActions(),
             EditAction::make()->label('Edit notes'),
         ];

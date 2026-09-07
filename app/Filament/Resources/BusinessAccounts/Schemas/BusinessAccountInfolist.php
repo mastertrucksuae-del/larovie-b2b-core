@@ -103,10 +103,8 @@ class BusinessAccountInfolist
                 TextEntry::make('trade_licence_path')
                     ->label('Trade licence document')
                     ->placeholder('No document uploaded')
-                    ->formatStateUsing(fn () => 'Download document')
-                    ->icon('heroicon-o-document-arrow-down')
-                    ->url(fn (BusinessAccount $record) => $record->trade_licence_url)
-                    ->openUrlInNewTab(),
+                    ->formatStateUsing(fn () => 'Uploaded — use "View trade licence" above')
+                    ->icon('heroicon-o-document-check'),
             ]);
     }
 
