@@ -178,6 +178,34 @@ tests/Feature/HomePageTest.php (new)
   the moment it ran. The homepage section reads the table and falls back to the shipped list
   if it is ever emptied, so it can never render as a bare heading.
 
+### Upload still hanging: raised the PHP limits (same day)
+Follow-up to the "Waiting for size" hang. Forensics on the stuck upload:
+`storage/app/private/livewire-tmp` held only a 129-byte `.json` sidecar and no
+image. Livewire writes that sidecar **first** and then stores the file
+(`FileUploadConfiguration::storeTemporaryFile`), so the POST arrived and the
+metadata was written while the file itself never landed. The sidecar named the
+real file: `ZeroPoreBlackheadMudMask5.png`, **1,920,875 bytes (1.83 MB)** —
+against `upload_max_filesize = 2M`. Right at the ceiling.
+
+Raised the local XAMPP php.ini (backed up alongside as `php.ini.bak-<stamp>`):
+
+    upload_max_filesize   2M  -> 16M
+    post_max_size         8M  -> 20M
+
+The app's derived field ceiling now reports 12 MB (its own clamp) instead of
+1.8 MB, and the orphaned temp metadata was cleared so the uploader starts clean.
+
+**Not verified end to end.** A curl reproduction against the signed Livewire
+upload endpoint returns 419 without a browser session, and building a
+CSRF-carrying harness was not worth further effort. The limits are confirmed
+raised in a fresh PHP process; whether the browser upload now completes needs a
+retry **after restarting the PHP server**, because php.ini is read once at
+process start — a running server keeps the old 2M limit.
+
+- **Tests:** 170 passing (9 image tests re-run against the new limits).
+- **Files modified:** none in the repo — php.ini is system configuration. The
+  production equivalents are already documented in `deploy/README.md`.
+
 ### Hand-picked featured products and brands (same day)
 The homepage's featured grid and brand strip can now be chosen in
 Settings -> Homepage instead of being derived. Two nullable JSON columns
