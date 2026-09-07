@@ -33,7 +33,13 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Must not serve. With `serve => true` and no `url`, Laravel claims
+            // `/storage/{path}` for THIS disk — the private one — which then
+            // refuses every unsigned request with a 403 and shadows the public
+            // disk that actually holds the uploads. Private files here (KYC
+            // trade licences) are served by an auth-guarded controller route,
+            // never by URL.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],
@@ -41,7 +47,16 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+            // Root-relative on purpose: an absolute URL built from APP_URL is a
+            // different origin the moment the site is reached on another host
+            // (127.0.0.1 vs localhost, a staging domain, a tunnel), and the
+            // browser then refuses to load the image. Anything that genuinely
+            // needs an absolute URL — og:image and friends — absolutises it at
+            // the point of use.
+            'url' => '/storage',
+            // This is the disk that should answer /storage. Public visibility
+            // means ServeFile hands the file over without needing a signature.
+            'serve' => true,
             'visibility' => 'public',
             'throw' => false,
             'report' => false,

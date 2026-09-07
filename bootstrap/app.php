@@ -17,6 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\CaptureAttribution::class,
             \App\Http\Middleware\SecurityHeaders::class,
         ]);
+
+        $middleware->alias([
+            'can-order' => \App\Http\Middleware\EnsureCanSubmitInquiry::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

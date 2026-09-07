@@ -2,6 +2,17 @@
 
 @section('title', __('shop.your_inquiry'))
 
+@php
+    // Pricing is public; sending an inquiry is not. Guests can fill a basket and
+    // are asked to sign in at the point of submitting it.
+    $buyer = auth('business')->user();
+    $canOrder = $buyer?->canSubmitInquiry() ?? false;
+
+    // The +971 prefix is rendered beside the field, so a stored E.164 number
+    // would show as "+971+971..." if pasted in whole.
+    $buyerMobile = $buyer ? ltrim(preg_replace('/^\+?971/', '', $buyer->phone ?? ''), ' 0') : null;
+@endphp
+
 @section('content')
     <div class="mb-8">
         <a href="{{ route('catalogue.index') }}" class="inline-flex items-center gap-1.5 text-sm text-plum-500 hover:text-plum transition mb-4">
@@ -22,6 +33,28 @@
         {{-- Submission form --}}
         <div class="lg:col-span-1">
             <div class="rounded-2xl bg-white ring-1 ring-line p-6 sm:p-8 sticky top-28">
+                @if (! $canOrder)
+                    @if ($buyer)
+                        {{-- Signed in, still waiting on review. --}}
+                        <h2 class="font-display text-2xl text-ink mb-1">{{ __('shop.order_pending_title') }}</h2>
+                        <p class="text-sm text-plum-600">{{ __('shop.order_pending_body') }}</p>
+                        <a href="{{ route('account') }}"
+                           class="mt-6 inline-flex w-full items-center justify-center rounded-full border border-line px-6 py-3 text-sm font-medium text-plum-700 hover:border-plum/40 hover:text-plum transition">
+                            {{ __('shop.nav_my_account') }}
+                        </a>
+                    @else
+                        <h2 class="font-display text-2xl text-ink mb-1">{{ __('shop.order_signin_title') }}</h2>
+                        <p class="text-sm text-plum-600">{{ __('shop.order_signin_body') }}</p>
+                        <a href="{{ route('login') }}"
+                           class="mt-6 inline-flex w-full items-center justify-center rounded-full bg-plum px-6 py-3.5 text-white font-medium hover:bg-plum-800 transition">
+                            {{ __('shop.nav_login') }}
+                        </a>
+                        <a href="{{ route('register') }}"
+                           class="mt-3 inline-flex w-full items-center justify-center rounded-full border border-plum/25 px-6 py-3 text-sm font-semibold text-plum hover:border-plum/50 transition">
+                            {{ __('shop.nav_open_account') }}
+                        </a>
+                    @endif
+                @else
                 <h2 class="font-display text-2xl text-ink mb-1">{{ __('shop.request_a_quote') }}</h2>
                 <p class="text-sm text-plum-500 mb-6">{{ __('shop.form_intro') }}</p>
 
@@ -41,7 +74,7 @@
 
                     <div>
                         <label class="block text-sm font-medium text-ink mb-1.5">{{ __('shop.name') }} *</label>
-                        <input type="text" name="customer_name" value="{{ old('customer_name') }}" required
+                        <input type="text" name="customer_name" value="{{ old('customer_name', $buyer?->contact_person) }}" required
                                class="w-full rounded-xl border border-line bg-ivory px-4 py-2.5 text-ink focus:border-plum focus:ring-2 focus:ring-plum/15 focus:bg-white transition">
                         @error('customer_name') <p class="mt-1 text-xs text-rose-deep">{{ $message }}</p> @enderror
                     </div>
@@ -50,7 +83,7 @@
                         <label class="block text-sm font-medium text-ink mb-1.5">{{ __('shop.mobile') }} *</label>
                         <div class="flex gap-2" dir="ltr">
                             <span class="inline-flex items-center rounded-xl border border-line bg-sand px-3 text-plum-600 text-sm">+971</span>
-                            <input type="tel" name="customer_mobile" value="{{ old('customer_mobile') }}" required placeholder="50 123 4567"
+                            <input type="tel" name="customer_mobile" value="{{ old('customer_mobile', $buyerMobile) }}" required placeholder="50 123 4567"
                                    class="w-full rounded-xl border border-line bg-ivory px-4 py-2.5 text-ink focus:border-plum focus:ring-2 focus:ring-plum/15 focus:bg-white transition">
                         </div>
                         @error('customer_mobile') <p class="mt-1 text-xs text-rose-deep">{{ $message }}</p> @enderror
@@ -64,14 +97,14 @@
 
                     <div>
                         <label class="block text-sm font-medium text-ink mb-1.5">{{ __('shop.email') }}</label>
-                        <input type="email" name="customer_email" value="{{ old('customer_email') }}"
+                        <input type="email" name="customer_email" value="{{ old('customer_email', $buyer?->email) }}"
                                class="w-full rounded-xl border border-line bg-ivory px-4 py-2.5 text-ink focus:border-plum focus:ring-2 focus:ring-plum/15 focus:bg-white transition">
                         @error('customer_email') <p class="mt-1 text-xs text-rose-deep">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium text-ink mb-1.5">{{ __('shop.company') }}</label>
-                        <input type="text" name="customer_company" value="{{ old('customer_company') }}"
+                        <input type="text" name="customer_company" value="{{ old('customer_company', $buyer?->company_name) }}"
                                class="w-full rounded-xl border border-line bg-ivory px-4 py-2.5 text-ink focus:border-plum focus:ring-2 focus:ring-plum/15 focus:bg-white transition">
                     </div>
 
@@ -94,6 +127,7 @@
                     </button>
                     <p class="text-xs text-plum-500 text-center">{{ __('shop.no_obligation') }}</p>
                 </form>
+                @endif
             </div>
         </div>
     </div>

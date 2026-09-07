@@ -16,6 +16,7 @@ npm ci
 npm run build
 
 php artisan migrate --force
+php artisan storage:link
 php artisan view:clear
 php artisan config:cache
 php artisan route:cache
@@ -25,6 +26,37 @@ php artisan route:cache
 
 `php artisan migrate --force` is what enables search indexing — migration
 `2026_08_10_000001_enable_search_indexing` flips the settings row on.
+
+`php artisan storage:link` is what makes admin-uploaded artwork reachable. Every
+image set in the panel — the logo, the homepage hero, product and variant image
+overrides, brand logos — is written to `storage/app/public` and served from
+`/storage/...`. Without the symlink each one is a 404 on the live site while
+looking perfectly fine in the admin preview. The command is safe to re-run: it
+does nothing when the link already exists.
+
+## PHP upload limits
+
+Admin image uploads (logo, homepage hero, product/variant overrides, brand
+logos) are capped by PHP, not by the app: the upload field derives its own limit
+from `upload_max_filesize` and `post_max_size` so it can never offer more than
+the server accepts. Stock values are often 2M, which is below a typical hero
+photograph.
+
+```ini
+upload_max_filesize = 16M
+post_max_size = 20M
+```
+
+`post_max_size` must stay comfortably above `upload_max_filesize` — it has to
+cover the whole multipart body, not just the file. nginx needs to agree, or it
+rejects the request before PHP sees it:
+
+```nginx
+client_max_body_size 20m;
+```
+
+Without these, an oversized upload is discarded before any application code
+runs, so there is no exception to find in the log — the uploader simply hangs.
 
 ## nginx
 

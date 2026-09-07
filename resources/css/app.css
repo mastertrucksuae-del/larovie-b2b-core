@@ -5,28 +5,32 @@
 @source '../views/**/*.blade.php';
 
 @theme {
-    /* Typography — editorial serif + clean sans (Larovie luxury minimalism) */
-    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
-    --font-serif: 'Playfair Display', ui-serif, Georgia, serif;
-    /* Self-hosted via the Vite fonts plugin — no third-party CDN round trip. */
-    --font-arabic: 'Cairo', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    /* Typography — designer uplift: editorial serif display over a geometric
+       humanist sans, with matched Arabic faces (self-hosted via Vite/bunny). */
+    --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+    --font-serif: 'Cormorant Garamond', ui-serif, Georgia, serif;
+    --font-arabic: 'IBM Plex Sans Arabic', 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    /* Arabic display face — Cormorant has no Arabic coverage, so RTL headings
+       need their own family or they silently fall back to a system serif. */
+    --font-arabic-display: 'Alexandria', 'IBM Plex Sans Arabic', ui-sans-serif, sans-serif;
 
     /* Brand palette — from the Larovié plum wordmark + rose accent */
-    --color-ink: #241522;          /* near-black plum, body text */
-    --color-plum-950: #201127;
-    --color-plum-900: #2a1730;
-    --color-plum-800: #341d3a;
-    --color-plum: #3e2340;         /* brand primary */
-    --color-plum-600: #55355a;
-    --color-plum-500: #6c4a72;
+    --color-ink: #2b232f;          /* near-black plum, body text */
+    --color-plum-950: #170c1a;
+    --color-plum-900: #1d0f21;
+    --color-plum-800: #241327;     /* brand primary (designer value) */
+    --color-plum: #241327;
+    --color-plum-700: #4a3550;
+    --color-plum-600: #5b4462;
+    --color-plum-500: #6f5676;
 
-    --color-rose-accent: #b76e79;  /* warm rose accent */
-    --color-rose-deep: #9c5763;
-    --color-blush: #f4eaec;        /* soft rose tint */
+    --color-rose-accent: #c75f7b;  /* warm rose accent */
+    --color-rose-deep: #a94f68;
+    --color-blush: #f4e7ea;        /* soft rose tint */
 
-    --color-ivory: #faf6f3;        /* warm page background */
-    --color-sand: #f0e9e3;         /* warm card/hairline base */
-    --color-line: #e9e1dd;         /* warm hairline */
+    --color-ivory: #faf7f3;        /* warm page background */
+    --color-sand: #f5eeec;         /* warm card/hairline base */
+    --color-line: #e5dbdb;         /* warm hairline */
 }
 
 /* Base */
@@ -51,6 +55,20 @@ body {
 .font-display {
     font-family: var(--font-serif);
     letter-spacing: -0.01em;
+}
+
+/* Cormorant Garamond ships no Arabic glyphs — RTL headings get Alexandria,
+   which carries the same editorial weight without falling back to a system face. */
+[dir='rtl'] .font-display {
+    font-family: var(--font-arabic-display);
+    letter-spacing: 0;
+}
+
+/* Homepage sections are reorderable from the dashboard, so two that share the
+   page background can end up adjacent with nothing between them. Full-bleed
+   bands carry their own border and break the chain naturally. */
+.home-section + .home-section {
+    border-top: 1px solid var(--color-line);
 }
 
 /* Subtle image zoom container */

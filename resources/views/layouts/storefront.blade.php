@@ -35,7 +35,7 @@
     {{-- Product imagery is served from the Shopify CDN — warm the connection early. --}}
     <link rel="preconnect" href="https://cdn.shopify.com" crossorigin>
     <link rel="dns-prefetch" href="https://cdn.shopify.com">
-    <meta name="theme-color" content="#3e2340">
+    <meta name="theme-color" content="#241327">
     <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
 
     {{-- SEO (P1 #9) --}}
@@ -57,10 +57,13 @@
     <meta property="og:title" content="@yield('title', $settings->company_name)">
     <meta property="og:description" content="@yield('meta_description', __('shop.meta_description_default'))">
     <meta property="og:url" content="{{ $canonical }}">
-    <meta property="og:image" content="@yield('og_image', $logoPng)">
+    {{-- Scrapers need an absolute URL. `url()` leaves an already-absolute one
+         alone, so this works whether the page yielded a stored-file path or a
+         full URL. --}}
+    <meta property="og:image" content="{{ url(trim($__env->yieldContent('og_image', $logoPng))) }}">
     <meta property="og:locale" content="{{ $locale === 'ar' ? 'ar_AE' : 'en_US' }}">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="@yield('og_image', $logoPng)">
+    <meta name="twitter:image" content="{{ url(trim($__env->yieldContent('og_image', $logoPng))) }}">
 
     {{-- Organization + WebSite structured data --}}
     <script type="application/ld+json">
@@ -127,11 +130,12 @@
             }, { once: true });
         </script>
     @endif
-    {{-- Self-hosted brand fonts: inlines the @font-face rules and preloads the
-         files. Without this the bundled fonts are never referenced and the page
-         silently falls back to system faces. Only the locale's text font is
-         preloaded — the other script's files would be dead weight. --}}
-    @fonts([$locale === 'ar' ? 'cairo' : 'inter', 'playfair-display'])
+    {{-- Self-hosted brand fonts: inlines the @font-face rules for this locale.
+         Without this the bundled fonts are never referenced and the page silently
+         falls back to system faces. The two scripts get disjoint pairs — Cormorant
+         has no Arabic coverage and Alexandria no Latin role — so loading the other
+         locale's faces would be dead weight. --}}
+    @fonts($locale === 'ar' ? ['ibm-plex-sans-arabic', 'alexandria'] : ['manrope', 'cormorant-garamond'])
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
     @stack('head')
@@ -149,13 +153,13 @@
 
     {{-- Announcement bar --}}
     <div class="bg-plum text-white/90 text-center text-xs sm:text-sm py-2 px-4 tracking-wide">
-        {{ __('shop.announcement') }}
+        {{ \App\Support\HomeContent::text('announcement') }}
     </div>
 
     <header class="sticky top-0 z-40 bg-ivory/85 backdrop-blur-md border-b border-line">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div class="flex h-24 items-center justify-between gap-4">
-                <a href="{{ route('catalogue.index') }}" class="flex items-center shrink-0">
+                <a href="{{ route('home') }}" class="flex items-center shrink-0">
                     <img src="{{ $logo }}" alt="{{ $settings->company_name }}"
                          @unless ($hasCustomLogo) width="240" height="240" @endunless
                          class="h-16 sm:h-20 w-auto"
@@ -185,7 +189,7 @@
                            class="inline-flex items-center gap-2 rounded-full border border-line bg-white h-10 w-10 md:w-auto justify-center md:px-4 text-xs font-medium text-plum-700 hover:text-plum hover:border-plum/40 transition"
                            aria-label="{{ __('shop.call_us') }}">
                             <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z"/></svg>
-                            <span class="hidden md:inline" dir="ltr">{{ $settings->company_phone }}</span>
+                            <span class="hidden xl:inline whitespace-nowrap" dir="ltr">{{ $settings->company_phone }}</span>
                         </a>
                     @endif
 
@@ -196,9 +200,56 @@
                            class="inline-flex items-center gap-2 rounded-full h-10 w-10 md:w-auto justify-center md:px-4 text-xs font-semibold text-white shadow-sm hover:brightness-105 transition"
                            aria-label="{{ __('shop.chat_whatsapp') }}">
                             <svg class="w-5 h-5 shrink-0" fill="#ffffff" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.372-.025-.521-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
-                            <span class="hidden md:inline">WhatsApp</span>
+                            <span class="hidden xl:inline">{{ __('shop.whatsapp') }}</span>
                         </a>
                     @endif
+
+                    {{-- Business account. This is the primary conversion path, so it is
+                         never folded away into a menu: guests always see both a sign-in
+                         link and a filled "open an account" button, and signed-in buyers
+                         get their account menu in the same slot. --}}
+                    @guest('business')
+                        <a href="{{ route('login') }}"
+                           class="hidden lg:inline-flex items-center gap-1.5 h-10 px-3 rounded-full text-xs font-medium whitespace-nowrap text-plum-700 hover:text-plum hover:bg-plum/[0.06] transition">
+                            <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25"/></svg>
+                            {{ __('shop.nav_login') }}
+                        </a>
+                        <a href="{{ route('register') }}"
+                           class="hidden sm:inline-flex items-center rounded-full bg-plum h-10 px-4 text-xs font-semibold text-white whitespace-nowrap shadow-sm hover:bg-plum-800 transition">
+                            {{ __('shop.nav_open_account') }}
+                        </a>
+                        {{-- Phones have no room for the full pill, but burying the only
+                             account entry point in the hamburger loses registrations, so
+                             the same link survives as an icon below sm. --}}
+                        <a href="{{ route('register') }}"
+                           class="sm:hidden inline-flex items-center justify-center rounded-full bg-plum w-10 h-10 text-white shadow-sm hover:bg-plum-800 transition"
+                           aria-label="{{ __('shop.nav_open_account') }}">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z"/></svg>
+                        </a>
+                    @else
+                        <a href="{{ route('account') }}"
+                           class="sm:hidden inline-flex items-center justify-center rounded-full border border-line bg-white w-10 h-10 text-plum-700 hover:text-plum transition"
+                           aria-label="{{ __('shop.nav_my_account') }}">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>
+                        </a>
+                        <div class="relative hidden sm:block" x-data="{ accountOpen: false }" @click.outside="accountOpen = false">
+                            <button type="button" @click="accountOpen = !accountOpen"
+                                    class="inline-flex items-center gap-2 rounded-full border border-line bg-white h-10 px-3 text-xs font-medium text-plum-700 hover:text-plum hover:border-plum/40 transition"
+                                    :aria-expanded="accountOpen">
+                                <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>
+                                <span class="max-w-[9rem] truncate">{{ auth('business')->user()->company_name }}</span>
+                            </button>
+                            <div x-show="accountOpen" x-cloak x-transition.opacity.duration.150ms
+                                 class="absolute end-0 mt-2 w-56 rounded-xl border border-line bg-white shadow-lg py-1.5 z-50">
+                                <a href="{{ route('account') }}" class="block px-4 py-2.5 text-sm text-plum-700 hover:bg-plum/[0.06] hover:text-plum transition">{{ __('shop.nav_my_account') }}</a>
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}">
+                                    <button type="submit" class="w-full text-start px-4 py-2.5 text-sm text-plum-700 hover:bg-plum/[0.06] hover:text-plum transition cursor-pointer">{{ __('shop.logout') }}</button>
+                                </form>
+                            </div>
+                        </div>
+                    @endguest
 
                     {{-- Language switch --}}
                     <div class="hidden sm:flex items-center rounded-full border border-line bg-white p-0.5 text-xs">
@@ -236,10 +287,31 @@
                     <span class="text-plum-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-6"/></svg></span>
                     <span class="font-medium">{{ __('shop.nav_contact') }}</span>
                 </a>
-                <a href="{{ route('register') }}" class="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-plum/[0.06] transition">
-                    <span class="text-plum-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z"/></svg></span>
-                    <span class="font-medium">{{ __('shop.nav_register') }}</span>
-                </a>
+                {{-- Account block: mirrors the desktop header so the sign-in and
+                     registration paths exist at every breakpoint. --}}
+                @guest('business')
+                    <a href="{{ route('register') }}" class="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-plum/[0.06] transition">
+                        <span class="text-plum-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z"/></svg></span>
+                        <span class="font-medium">{{ __('shop.nav_open_account') }}</span>
+                    </a>
+                    <a href="{{ route('login') }}" class="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-plum/[0.06] transition">
+                        <span class="text-plum-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25"/></svg></span>
+                        <span class="font-medium">{{ __('shop.nav_login') }}</span>
+                    </a>
+                @else
+                    <a href="{{ route('account') }}" class="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-plum/[0.06] transition">
+                        <span class="text-plum-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg></span>
+                        <span class="font-medium">{{ __('shop.nav_my_account') }}</span>
+                    </a>
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}">
+                        <button type="submit" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-plum/[0.06] transition text-start cursor-pointer">
+                            <span class="text-plum-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25"/></svg></span>
+                            <span class="font-medium">{{ __('shop.logout') }}</span>
+                        </button>
+                    </form>
+                @endguest
                 <div class="mt-2 pt-3 border-t border-line/70 flex items-center gap-2 px-3 text-xs">
                     <a href="{{ route('locale.switch', 'en') }}" @class(['px-3 py-1.5 rounded-full border', 'bg-plum text-white border-plum' => $locale === 'en', 'border-line text-plum-700' => $locale !== 'en'])>EN</a>
                     <a href="{{ route('locale.switch', 'ar') }}" @class(['px-3 py-1.5 rounded-full border', 'bg-plum text-white border-plum' => $locale === 'ar', 'border-line text-plum-700' => $locale !== 'ar'])>العربية</a>
@@ -248,17 +320,19 @@
         </div>
     </header>
 
-    <main id="main" class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
+    <main id="main" class="@yield('main_class', 'mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-10 pb-20')">
         @if (session('error'))
-            <div class="mb-6 rounded-xl bg-blush border border-rose-accent/30 px-4 py-3 text-rose-deep">
-                {{ session('error') }}
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6">
+                <div class="rounded-xl bg-blush border border-rose-accent/30 px-4 py-3 text-rose-deep">
+                    {{ session('error') }}
+                </div>
             </div>
         @endif
 
         @yield('content')
     </main>
 
-    <footer class="mt-20 bg-plum-950 text-white/70">
+    <footer class="bg-plum-950 text-white/70">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14">
             <div class="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
                 <div>

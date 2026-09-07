@@ -136,4 +136,29 @@
             @endif
         </div>
     </div>
+
+    {{-- Internal linking. Beyond helping the buyer, these are the only crawlable
+         paths between product pages: the catalogue itself is an infinite scroll,
+         which search engines do not execute. --}}
+    @include('catalogue.partials.product-rail', [
+        'title' => __('shop.rail_bought_together'),
+        'products' => $boughtTogether ?? collect(),
+    ])
+
+    @include('catalogue.partials.product-rail', [
+        'title' => __('shop.rail_similar'),
+        'products' => $similar ?? collect(),
+        'moreUrl' => route('catalogue.index'),
+    ])
+
+    @include('catalogue.partials.product-rail', [
+        'title' => __('shop.rail_same_brand', ['brand' => $product->effective_brand]),
+        'products' => $sameBrand ?? collect(),
+        'moreUrl' => route('catalogue.index', ['q' => $product->effective_brand]),
+    ])
+
+    @include('catalogue.partials.product-rail', [
+        'title' => __('shop.rail_recently_viewed'),
+        'products' => $recentlyViewed ?? collect(),
+    ])
 @endsection

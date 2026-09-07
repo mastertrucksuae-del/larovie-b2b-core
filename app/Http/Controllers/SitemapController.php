@@ -32,7 +32,8 @@ class SitemapController extends Controller
         // columns and crawlers hit this rarely; the Cache-Control header below
         // already stops anything from hammering it.
         $urls = [
-            ['loc' => route('catalogue.index'), 'priority' => '1.0', 'changefreq' => 'daily'],
+            ['loc' => route('home'), 'priority' => '1.0', 'changefreq' => 'weekly'],
+            ['loc' => route('catalogue.index'), 'priority' => '0.9', 'changefreq' => 'daily'],
             ['loc' => route('authenticity'), 'priority' => '0.6', 'changefreq' => 'monthly'],
             ['loc' => route('contact'), 'priority' => '0.7', 'changefreq' => 'monthly'],
         ];

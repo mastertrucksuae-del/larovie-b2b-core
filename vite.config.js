@@ -94,20 +94,27 @@ export default defineConfig({
             // the browser still discovers them at parse time, and `display: swap`
             // means they never block the first paint.
             fonts: [
-                bunny('Playfair Display', {
-                    weights: [400, 600, 700],
+                // Designer type system (Larovie uplift): editorial serif display
+                // over a geometric humanist sans, with matched Arabic faces.
+                bunny('Cormorant Garamond', {
+                    weights: [400, 500, 600],
                     subsets: ['latin'],
                     preload: false,
                 }),
-                bunny('Inter', {
+                bunny('Manrope', {
                     weights: [400, 500, 600, 700],
                     subsets: ['latin'],
                     preload: false,
                 }),
-                // Arabic UI font. Self-hosted rather than pulled from the Google
-                // Fonts CDN so it never blocks first render on AR pages.
-                bunny('Cairo', {
-                    weights: [400, 500, 700],
+                // Arabic counterparts. Self-hosted rather than pulled from the
+                // Google Fonts CDN so they never block first render on AR pages.
+                bunny('Alexandria', {
+                    weights: [400, 500, 600],
+                    subsets: ['arabic', 'latin'],
+                    preload: false,
+                }),
+                bunny('IBM Plex Sans Arabic', {
+                    weights: [400, 500, 600, 700],
                     subsets: ['arabic', 'latin'],
                     preload: false,
                 }),

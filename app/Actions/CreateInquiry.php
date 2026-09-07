@@ -38,6 +38,10 @@ class CreateInquiry
         $inquiry = DB::transaction(function () use ($data, $cart, $locale, $currency, $attribution) {
             $inquiry = Inquiry::create(array_merge([
                 'status' => Inquiry::STATUS_NEW,
+                // Attribute the inquiry to the signed-in buyer so the account
+                // view can report on it. Guests keep this null and are matched
+                // on email instead.
+                'business_account_id' => auth('business')->id(),
                 'customer_name' => $data['customer_name'],
                 'customer_mobile' => PhoneNumber::toE164($data['customer_mobile']),
                 'is_whatsapp' => $data['is_whatsapp'] ?? false,

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Products\RelationManagers;
 
+use App\Filament\Support\WebpUpload;
 use App\Models\ProductVariant;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\FileUpload;
@@ -25,14 +26,10 @@ class VariantsRelationManager extends RelationManager
     {
         return $schema
             ->components([
-                FileUpload::make('image_path')
+                WebpUpload::make('image_path', 'variant-images')
                     ->label('Image override')
-                    ->helperText('Overrides the Shopify variant image. Kept across re-syncs.')
-                    ->image()
+                    ->helperText('Overrides the Shopify variant image. Kept across re-syncs. Converted to WebP.')
                     ->imageEditor()
-                    ->disk('public')
-                    ->directory('variant-images')
-                    ->maxSize(4096)
                     ->columnSpanFull(),
                 TextInput::make('wholesale_price')
                     ->label('Wholesale price')

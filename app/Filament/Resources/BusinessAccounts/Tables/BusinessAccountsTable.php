@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources\BusinessAccounts\Tables;
 
+use App\Filament\Resources\BusinessAccounts\BusinessAccountResource;
 use App\Models\BusinessAccount;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -47,8 +49,10 @@ class BusinessAccountsTable
                 SelectFilter::make('status')
                     ->options(BusinessAccount::STATUSES),
             ])
+            ->recordUrl(fn (BusinessAccount $record) => BusinessAccountResource::getUrl('view', ['record' => $record]))
             ->recordActions([
-                EditAction::make()->label('Review'),
+                ViewAction::make()->label('Review'),
+                EditAction::make()->label('Notes'),
             ])
             ->defaultSort('created_at', 'desc');
     }

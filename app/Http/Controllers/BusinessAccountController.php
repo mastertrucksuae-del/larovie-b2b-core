@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BusinessAccount;
+use App\Models\Setting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -42,6 +43,10 @@ class BusinessAccountController extends Controller
             ? $request->file('trade_licence')->store('trade-licences', 'local')
             : null;
 
+        // With review switched off in Settings, there is no queue to wait in:
+        // the account is approved on the spot and can price immediately.
+        $reviewRequired = Setting::current()->require_account_review;
+
         BusinessAccount::create([
             'company_name' => $data['company_name'],
             'contact_person' => $data['contact_person'],
@@ -50,11 +55,15 @@ class BusinessAccountController extends Controller
             'password' => $data['password'], // hashed via model cast
             'trade_licence_number' => $data['trade_licence_number'] ?? null,
             'trade_licence_path' => $path,
-            'status' => BusinessAccount::STATUS_PENDING,
+            'status' => $reviewRequired ? BusinessAccount::STATUS_PENDING : BusinessAccount::STATUS_APPROVED,
+            'approved_at' => $reviewRequired ? null : now(),
             'locale' => app()->getLocale(),
         ]);
 
-        return redirect()->route('login')->with('status', __('shop.register_received'));
+        return redirect()->route('login')->with(
+            'status',
+            __($reviewRequired ? 'shop.register_received' : 'shop.register_approved')
+        );
     }
 
     public function showLogin(): View
@@ -82,11 +91,51 @@ class BusinessAccountController extends Controller
 
     public function logout(Request $request): RedirectResponse
     {
+        // Resolved before the session is thrown away — it comes from the form
+        // body, but read it first so the ordering is not a trap for later edits.
+        $target = $this->destinationAfterLogout($request);
+
         Auth::guard('business')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('catalogue.index');
+        return redirect()->to($target);
+    }
+
+    /**
+     * Where to land after signing out.
+     *
+     * Signing out from the middle of the catalogue should leave the buyer where
+     * they were, not bounce them to the homepage. The submitted value is
+     * untrusted, so it is constrained two ways: same-origin only, or logout
+     * becomes an open redirect anyone could point at a phishing page; and never
+     * a page that needs a session (or a guest-only auth page), which would bounce
+     * straight back or read as an error the moment they arrive.
+     */
+    private function destinationAfterLogout(Request $request): string
+    {
+        $submitted = trim((string) $request->input('redirect_to'));
+
+        if ($submitted === '') {
+            return route('home');
+        }
+
+        $parts = parse_url($submitted);
+
+        if ($parts === false || (isset($parts['host']) && $parts['host'] !== $request->getHost())) {
+            return route('home');
+        }
+
+        $path = '/'.ltrim($parts['path'] ?? '/', '/');
+
+        foreach (['/account', '/admin', '/login', '/register'] as $blocked) {
+            if ($path === $blocked || str_starts_with($path, $blocked.'/')) {
+                return route('home');
+            }
+        }
+
+        // The query string carries the ?hl= locale, so keep it.
+        return $path.(isset($parts['query']) ? '?'.$parts['query'] : '');
     }
 
     public function dashboard(): View

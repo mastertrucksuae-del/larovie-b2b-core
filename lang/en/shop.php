@@ -5,7 +5,7 @@ return [
     'wholesale_catalogue' => 'Wholesale Catalogue',
     'catalogue' => 'Catalogue',
     'catalogue_intro' => 'Premium skincare for GCC skin. Browse the collection and build your wholesale inquiry.',
-    'announcement' => 'Larovié Wholesale · Premium skincare, crafted for the GCC',
+    'announcement' => 'Wholesale only — UAE Registered Business — 100% Authentic Products',
     'tagline' => 'Pure radiance, perfected.',
     'wholesale_enquiries' => 'Wholesale enquiries',
     'language' => 'Language',
@@ -170,4 +170,112 @@ return [
     'status_approved_note' => 'Your business account is approved. Thank you for registering with us.',
     'status_rejected' => 'Not approved',
     'status_rejected_note' => 'We were unable to approve your account at this time.',
+
+    // ── Homepage (designer uplift) ───────────────────────────────────────────
+    'home_title' => 'Authentic Korean & Japanese Beauty Wholesale in the UAE',
+    'home_meta_description' => 'Wholesale Korean and Japanese skincare, haircare and beauty for retailers, pharmacies, salons and online stores across the UAE and GCC. 100% authentic, UAE registered.',
+
+    // Hero
+    'hero_eyebrow' => 'Larovie Wholesale',
+    'hero_title' => 'Wholesale Korean & Japanese Beauty, Curated for Your Business',
+    'hero_subtitle' => 'Explore authentic skincare, haircare and beauty products selected for retailers, salons, pharmacies and online businesses across the UAE and GCC.',
+    'hero_cta_browse' => 'Browse the Catalogue',
+    'hero_cta_account' => 'Open a Business Account',
+    'hero_image_alt' => 'Korean and Japanese skincare bottles arranged on a stone plinth',
+
+    // Trust strip
+    'trust_authentic' => '100% Authentic Products',
+    'trust_registered' => 'UAE Registered Business',
+    'trust_licence' => 'Trade Licence: :number',
+    'trust_support' => 'Dedicated Wholesale Support',
+    'trust_response' => 'Fast Enquiry Response',
+    'trust_secure' => 'Secure Business Ordering',
+
+    // Section headings
+    'shop_by_category' => 'Shop by Category',
+    'view_all' => 'View all',
+    'featured_brands' => 'Featured Brands',
+    'view_all_brands' => 'View All Brands',
+    'featured_products' => 'Featured Wholesale Products',
+    'products_count' => ':count products',
+    'brand_products_count' => ':count products',
+
+    // Product card
+    'min_order' => 'Minimum order: :count unit|Minimum order: :count units',
+    'in_stock' => 'In stock',
+    'limited_stock' => 'Limited stock',
+    'out_of_stock' => 'Out of stock',
+    'view_details' => 'View Details',
+
+    // Why partner
+    'why_partner' => 'Why Partner with Larovie?',
+    'why_1_title' => 'Authentic, verified products',
+    'why_1_body' => 'Sourced through vetted channels and checked before storage.',
+    'why_2_title' => 'A broad, focused range',
+    'why_2_body' => 'Korean and Japanese brands across skin, hair, body and sun care.',
+    'why_3_title' => 'Dedicated wholesale support',
+    'why_3_body' => 'A team that follows your order and answers quickly.',
+    'why_4_title' => 'A clear ordering experience',
+    'why_4_body' => 'Collect products in one list and send it as an enquiry.',
+    'why_5_title' => 'Registered in Dubai',
+    'why_5_body' => 'Trade licence :number, based in Business Bay.',
+    'why_6_title' => 'Built for every business',
+    'why_6_body' => 'From pharmacies to salons to online stores.',
+
+    // How it works
+    'how_it_works' => 'How Wholesale Ordering Works',
+    'step_1_title' => 'Open a business account',
+    'step_1_body' => 'Send your trade details for review.',
+    'step_2_title' => 'Browse the catalogue',
+    'step_2_body' => 'Select the products that fit your customers.',
+    'step_3_title' => 'Send your quantities',
+    'step_3_body' => 'Set a quantity per product and submit the enquiry.',
+    'step_4_title' => 'Review and confirm',
+    'step_4_body' => 'We review the request and contact you to finalise.',
+
+    // Business types
+    'business_types' => 'Business Types We Serve',
+    'type_retailers' => 'Beauty retailers',
+    'type_pharmacies' => 'Pharmacies',
+    'type_salons' => 'Salons and spas',
+    'type_ecommerce' => 'E-commerce stores',
+    'type_clinics' => 'Clinics',
+    'type_distributors' => 'Distributors',
+
+    // Closing CTA
+    'cta_title' => 'Ready to Build Your Next Beauty Order?',
+    'cta_body' => 'Create a business account or send us your product requirements, and our wholesale team will contact you.',
+    'cta_contact' => 'Contact Wholesale Team',
+
+    // Header auth
+    'nav_login' => 'Sign in',
+    'nav_open_account' => 'Open a business account',
+    'nav_my_account' => 'My account',
+    'request_wholesale_account' => 'Request a Wholesale Account',
+    // Derived catalogue categories (see App\Support\Category)
+    'cat_cleansers' => 'Cleansers',
+    'cat_serums' => 'Serums & Essences',
+    'cat_moisturizers' => 'Moisturizers',
+    'cat_toners' => 'Toners & Pads',
+    'cat_sun_care' => 'Sun Care',
+    'cat_masks' => 'Masks & Patches',
+    'cat_haircare' => 'Haircare',
+    'cat_body_care' => 'Body Care',
+    'why_5_body_no_licence' => 'A UAE registered business, based in Business Bay, Dubai.',
+    'whatsapp' => 'WhatsApp',
+    'register_approved' => 'Your business account is ready. Sign in to see wholesale pricing.',
+    'rail_similar' => 'Similar products',
+    'rail_same_brand' => 'More from :brand',
+    'rail_bought_together' => 'Often requested together',
+    'rail_recently_viewed' => 'Recently viewed',
+    'rail_browse_category' => 'Browse :category',
+    'order_requires_account' => 'Sign in or open a business account to send your inquiry.',
+    'order_requires_approval' => 'Your business account is still awaiting approval. We will email you as soon as it is approved.',
+    'order_signin_title' => 'Sign in to send this inquiry',
+    'order_signin_body' => 'Your selection is saved. Sign in, or open a business account, and we will bring you straight back here.',
+    'order_pending_title' => 'Account awaiting approval',
+    'order_pending_body' => 'You can keep building this inquiry. As soon as your account is approved you will be able to send it.',
+    'whatsapp_title' => 'Prefer to talk it through?',
+    'whatsapp_body' => 'Message our wholesale team on WhatsApp for stock checks, lead times and pricing on bulk quantities.',
+    'whatsapp_cta' => 'Chat on WhatsApp',
 ];

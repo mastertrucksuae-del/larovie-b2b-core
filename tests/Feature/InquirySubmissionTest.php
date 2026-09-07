@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\BusinessAccount;
 use App\Models\Inquiry;
 use App\Models\Product;
 use App\Models\ProductVariant;
@@ -11,6 +12,25 @@ use Tests\TestCase;
 class InquirySubmissionTest extends TestCase
 {
     use RefreshDatabase;
+
+    /**
+     * Submitting an inquiry requires an approved account, so every test here
+     * acts as one. The guard itself is covered in BusinessAccountReviewTest.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->actingAs(BusinessAccount::create([
+            'company_name' => 'Aisha Trading',
+            'contact_person' => 'Aisha',
+            'email' => 'buyer@example.com',
+            'phone' => '+971501112222',
+            'password' => 'password123',
+            'status' => BusinessAccount::STATUS_APPROVED,
+            'locale' => 'en',
+        ]), 'business');
+    }
 
     protected function makeVariant(array $attrs = []): ProductVariant
     {
