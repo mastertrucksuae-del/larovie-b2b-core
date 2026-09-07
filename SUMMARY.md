@@ -1,5 +1,297 @@
 # Larovie B2B Wholesale Catalogue — Session Log
 
+## 2026-09-07
+**Topics:** Ported the designer's Lovable prototype (larovie-wholesale-hub.lovable.app) into
+the real Laravel app as a proper bilingual homepage, made the login/registration paths
+unmissable, and repaired a XAMPP/MariaDB startup failure that was blocking all local work.
+
+**XAMPP fix (root cause):** MariaDB aborted with `Can't open and lock privilege tables:
+Incorrect file format 'proxies_priv'`. On 2026-08-17 03:46:38 something wrote InnoDB log
+content over two `mysql` system tables — `proxies_priv.MAI` (5,242,880 bytes, byte-identical
+in size to `ib_logfile1`) and `db.MAD` (9.6 MB). The loud "InnoDB may be corrupt / LSN in the
+future" messages were a red herring. Restored both from `D:\xampp\mysql\backup\mysql\`;
+damaged originals kept as `.corrupt-*`, full cold backup at `D:\xampp-mysql-backup-20260907-105738`.
+Data intact: 496 products / 539 variants / 403 visible. `mysql.gtid_slave_pos` is still missing
+from its engine — harmless (replication only), left alone.
+
+**Decisions:**
+- `/` is now the marketing homepage (`HomeController`); the catalogue moved to `/catalogue`,
+  keeping the `catalogue.index` route name so all 14 existing links followed automatically.
+  Safe on SEO because indexing is still switched off in Settings.
+- Adopted the designer's type system app-wide: Cormorant Garamond + Manrope (Latin),
+  Alexandria + IBM Plex Sans Arabic (Arabic), self-hosted via the existing bunny/Vite setup.
+  Palette shifted to the prototype's two real differences — primary `#241327` (was `#3e2340`)
+  and accent `#c75f7b` (was `#b76e79`). Also defined `--color-plum-700`, which 13 existing
+  classes referenced but the theme never declared.
+- **No category taxonomy exists in the data**: `product_type` is empty for 263/330 visible
+  products and holds a unique marketing sentence for the rest, `tags` covers only 67, and
+  Shopify collections are never imported. Added `App\Support\Category` deriving 8 categories
+  from title keywords — documented as a stopgap; the durable fix is importing collections.
+- Price gating: guests see "Log in to view wholesale price" instead of a number, matching the
+  designer's intent and giving registration a concrete payoff. Applied on the homepage only —
+  extending it catalogue-wide is a business call, not a silent change.
+- Stock badge threshold set to 3, not the usual 10: real inventory averages 3.6 units a
+  variant, so a threshold of 10 badged literally every card "Limited stock".
+- Hero art is a 2x2 mosaic of real catalogue imagery — the storefront ships no lifestyle
+  photography and the prototype's stock photo is not ours to take.
+
+**Auth visibility:** header now carries a "Sign in" link plus a filled "Open a business
+account" button for guests, and an account menu (company name / My account / Sign out) when
+signed in — mirrored in the mobile panel, with an icon-only account button below 640px so the
+path is never buried in the hamburger.
+
+**Tests:** 86 passing / 284 assertions (was 76 with 2 failing). Updated `FontLoadingTest` for
+the new families — including a per-locale isolation check written against the real emitted
+`font-family: "X"` shape, since the first version could only ever have passed vacuously — and
+added `HomePageTest` (10 cases: routing, featured-product sourcing, visibility filtering,
+the price gate both signed-in and out, header auth states, RTL).
+
+**Still needs founder action:** trade licence number is unset in Settings, so the licence trust
+item is hidden and "Registered in Dubai" falls back to copy without a number; MOQ is unset on
+482/496 products so every card reads "Minimum order: 1 unit"; search indexing remains off.
+
+**Files modified:** routes/web.php, app/Http/Controllers/HomeController.php (new),
+app/Support/Category.php (new), app/Http/Controllers/SitemapController.php,
+resources/views/home.blade.php (new), resources/views/home/partials/featured-card.blade.php (new),
+resources/views/components/home-quick-add.blade.php (new),
+resources/views/layouts/storefront.blade.php, resources/css/app.css, vite.config.js,
+lang/en/shop.php, lang/ar/shop.php, tests/Feature/FontLoadingTest.php,
+tests/Feature/HomePageTest.php (new)
+
+### Homepage made editable + sortable from the dashboard (same day)
+- **Translation audit:** EN/AR now at 215/215 key parity with no value identical across the
+  two files. One genuinely hardcoded string was left in the storefront ("WhatsApp" in the
+  header) — now `shop.whatsapp` / "واتساب". Two tests lock this in permanently: every editable
+  key must exist in both files with different values, and the two files must not drift.
+- **Editable copy:** new `homepage_content` JSON column on settings holding
+  `{"en": {...}, "ar": {...}}` overrides, resolved through `App\Support\HomeContent`. An
+  override wins; anything blank falls back to the shipped translation, so clearing a field in
+  the dashboard restores the default instead of emptying the section. One JSON column rather
+  than ~120 `_en`/`_ar` columns, which would need a migration per line of copy. 59 keys × 2
+  languages = 118 fields, generated in Filament from `HomeContent::GROUPS` so the form can
+  never drift from what the page renders. Placeholders (`:number`) and plural forms
+  (`singular|plural`) survive overrides — `HomeContent::choice()` runs an overridden string
+  through the translator's own message selector.
+- **Also editable:** hero image upload (replaces the auto product collage), featured-product
+  count (clamped 4–24), per-section visibility toggles, and SEO title/meta description.
+- **Sortable sections:** new `homepage_section_order` column plus a drag-to-reorder control.
+  The six middle sections were extracted into `resources/views/home/sections/*.blade.php` and
+  are now rendered by a loop over `HomeContent::sectionOrder()`. Hero, trust strip and closing
+  CTA stay fixed — a toggle that can blank the whole page is a support ticket waiting to
+  happen. The stored order is treated as a preference, not a spec: unknown keys are dropped,
+  duplicates collapse, and any section missing from it still renders appended in shipped
+  order, so adding a seventh section later cannot make it invisible on existing installs.
+- **Bug found and fixed in the test harness:** `Setting::current()` memoises the settings row
+  in a static. RefreshDatabase rolls the row back between tests but the stale model survived
+  in memory, so one test's settings silently applied to the next — this produced three
+  confusing failures. Now reset in `Tests\TestCase::setUp()`, which protects every test.
+- **phpunit memory_limit raised to 512M:** rendering ~120 Livewire form fields in one pass
+  exhausted the stock 128M and aborted the suite.
+- **Heads-up:** running `php artisan migrate` applied the previously pending
+  `2026_08_10_000001_enable_search_indexing`, so `search_indexing_enabled` is now ON in the
+  local database. Local only — check the intended value before production.
+- **Tests:** 102 passing / 628 assertions (was 86 / 284).
+- **Files added:** app/Support/HomeContent.php, resources/views/home/sections/{categories,
+  brands,featured,why,steps,types}.blade.php, tests/Feature/HomepageContentTest.php, two
+  migrations (homepage content + section order).
+- **Files modified:** app/Filament/Pages/ManageSettings.php, app/Models/Setting.php,
+  app/Http/Controllers/HomeController.php, resources/views/home.blade.php,
+  resources/views/home/partials/featured-card.blade.php,
+  resources/views/components/home-quick-add.blade.php,
+  resources/views/layouts/storefront.blade.php, lang/en/shop.php, lang/ar/shop.php,
+  tests/TestCase.php, phpunit.xml
+
+
+### Account view page, review toggle, and product-page internal linking (same day)
+- **Business account view page** (`/admin/business-accounts/{id}`) — a read-only profile built
+  as a Filament infolist: application status with the full audit trail (registered, approved,
+  reviewed by, notes), applicant details with click-to-mail/call, verification (licence number
+  + document), then the management side: inquiries, confirmed orders, conversion %, open
+  inquiries, confirmed value, quoted value, average order, last activity, a pipeline
+  breakdown, most-requested products, and the last 10 inquiries linking through to each.
+  Sections with no data hide themselves rather than showing empty headings. The table's row
+  click now opens this; Edit is kept for notes only. Approve/Reject moved into a shared
+  `ReviewsBusinessAccount` trait so the view and edit pages stamp the same audit trail.
+- **`require_account_review` setting** (Settings → Business accounts). ON (the default, and
+  what already shipped) queues registrations as pending. OFF approves them on registration,
+  stamps `approved_at`, and shows the applicant a different message
+  (`register_approved` vs `register_received`).
+- **Bug found and fixed — pending accounts could see wholesale prices.** `login()` never
+  checked status, so the price gate added earlier only tested "is signed in". An unreviewed
+  or rejected applicant could log in and read wholesale pricing. The gate is now
+  `canSeeWholesalePrices()` (i.e. approved), and a signed-in-but-unapproved buyer sees
+  "Pricing unlocks once your account is approved" rather than a nonsensical "log in" prompt.
+- **Inquiries now link to accounts.** New `inquiries.business_account_id`, set by
+  `CreateInquiry` from the signed-in guard. Reporting reads through
+  `BusinessAccount::matchedInquiries()`, which also matches historical guest rows on email
+  (unique on the accounts table) — without that, a long-standing buyer who only just
+  registered would read as brand new. `AccountInsights` memoises per account so the view
+  costs one set of queries rather than one per field.
+- **Product page internal linking** — four rails: often requested together, similar products,
+  more from the same brand, recently viewed. These are the storefront's *only* crawlable path
+  between product pages, since the catalogue is an infinite scroll that crawlers do not run;
+  a product page went from 0 to ~12 internal links. Similar is matched on the derived
+  category (`Category::keysFor`) and biased away from the product's own brand, falling back
+  to same-brand when the category is thin. "Often requested together" is ranked by real
+  co-occurrence across inquiries. Recently viewed is session-backed, matching the cart.
+- **Caveat on "often requested together":** every one of the 10 `inquiry_items` rows in the
+  local database has a NULL `product_variant_id`, so the rail is always empty here and could
+  not be validated against real data. New cart submissions do set it, and the ranking query
+  is covered by a test that builds the co-occurrence explicitly. Worth re-checking once real
+  cart-based inquiries exist.
+- **Tests:** 129 passing / 698 assertions (was 102 / 628). Two of my own test bugs found and
+  fixed along the way: the cart session key is `inquiry_cart`, not `cart`, and `round()`
+  returns a float where the conversion percentage should be an int.
+- **Files added:** app/Support/{AccountInsights,ProductRecommendations,RecentlyViewed}.php,
+  app/Filament/Resources/BusinessAccounts/{Pages/ViewBusinessAccount,Schemas/BusinessAccountInfolist,Concerns/ReviewsBusinessAccount}.php,
+  resources/views/catalogue/partials/product-rail.blade.php,
+  tests/Feature/{BusinessAccountReviewTest,ProductLinkingTest}.php, two migrations
+  (require_account_review, inquiries.business_account_id).
+- **Files modified:** app/Models/{Setting,Inquiry,BusinessAccount}.php,
+  app/Http/Controllers/{BusinessAccountController,CatalogueController}.php,
+  app/Actions/CreateInquiry.php, app/Support/{Category,HomeContent}.php,
+  app/Filament/Pages/ManageSettings.php,
+  app/Filament/Resources/BusinessAccounts/{BusinessAccountResource,Tables/BusinessAccountsTable,Pages/EditBusinessAccount}.php,
+  resources/views/catalogue/show.blade.php,
+  resources/views/home/partials/featured-card.blade.php, lang/en/shop.php, lang/ar/shop.php,
+  tests/TestCase.php
+
+### Pricing opened up, ordering gated, WhatsApp band, business types (same day)
+- **Prices are public again.** The earlier login-to-see-price gate was removed at the
+  founder's call: hiding pricing costs traffic, and the gate that matters is on ordering.
+  `canSeeWholesalePrices()` is gone; the dead `login_to_view_price` /
+  `price_pending_approval` copy was deleted rather than left to rot.
+- **Ordering is gated instead.** New `EnsureCanSubmitInquiry` middleware (`can-order`) on
+  `POST /inquiry`, so the guard cannot be bypassed by posting straight at the route. Guests
+  are sent to sign in with `url.intended` set to the cart, so they come back to their basket.
+  The rule is `canSubmitInquiry()`: never for a rejected account, and otherwise approval is
+  required only while manual review is switched on — so turning review off retrospectively
+  frees accounts that were queued under the old setting instead of stranding them.
+  The cart shows a sign-in / open-account panel (or an "awaiting approval" panel) in place of
+  the form, and the form is now prefilled from the signed-in account.
+- **WhatsApp is a real homepage section now**, not just a header/footer link: a sortable,
+  toggleable band with its own editable title/body/button in both languages. It renders only
+  when a WhatsApp or fallback phone number is configured.
+- **Business types are managed in the dashboard** (Admin → Business types): manual CRUD with
+  drag-to-reorder, English + optional Arabic (falls back to English), and a visibility toggle.
+  Seeded with the six that were hard-coded in the language files, so the page was unchanged
+  the moment it ran. The homepage section reads the table and falls back to the shipped list
+  if it is ever emptied, so it can never render as a bare heading.
+
+### Final end-to-end test, WebP uploads, production pass (same day)
+- **End-to-end journey test.** Walks the real paths rather than repeating unit coverage: a
+  visitor browsing with public pricing, being stopped at the order, registering, waiting on
+  review, an admin approving from the account view, the order going through attributed to that
+  account and appearing in their reporting — plus the founder reordering/rewording the
+  homepage, the full Arabic journey, logout return, and every public route answering.
+  Found a genuine test-authoring trap while writing it: `actingAs($account, 'business')` makes
+  `business` the **default guard for the rest of the test**, so a later bare `actingAs($admin)`
+  signed the admin in on the wrong guard and Filament bounced them to login. Guard now named
+  explicitly, with the reason recorded.
+- **Uploads are converted to WebP** (`App\Support\ImageProcessor`, wired into all five admin
+  upload fields through one `WebpUpload` factory so no form can quietly skip it). Downscales
+  above 1600px, quality 82, preserves PNG/WebP transparency (without `imagesavealpha` a
+  transparent logo comes out on a black box). Deliberate exclusions: SVG passes through
+  untouched — rasterising a vector logo makes it bigger and blurrier — and KYC trade licences
+  are never touched, being private, often PDFs, and legal evidence. Guarded against decode
+  bombs at 40MP, and any failure stores the original rather than losing the upload.
+  Verified by a real encode, not a stub: 7 tests covering conversion, size reduction,
+  downscale ratio, transparency, SVG pass-through and PDF safety.
+- **Alt text audited properly.** Every `<img>` in the storefront already carries an `alt`. Five
+  are empty, and all five are correct: each sits directly beside text naming the same thing, so
+  a duplicate alt would make the screen-reader experience worse, not better. Left alone
+  deliberately. (First audit pass reported false positives — the regex `[^>]*` stops at the
+  `>` inside PHP's `->`.)
+- **Production gap found: `php artisan storage:link` was missing from the deploy script.**
+  Every image set in the panel is written to `storage/app/public` and served from `/storage/...`;
+  without the symlink each one is a 404 on the live site while looking perfectly fine in the
+  admin preview. Added to `deploy/README.md` with the reasoning.
+  Locally the link cannot be created at all — `D:` is not a local NTFS volume, so Windows
+  refuses both symlink and junction ("Local NTFS volumes are required"). `artisan storage:link`
+  reports success but creates nothing. Not a code defect and not reproducible on the Linux
+  server, but it does mean **uploaded images 404 on this machine only**.
+- **Tests:** 161 passing / 966 assertions (was 147).
+- **Files added:** app/Support/ImageProcessor.php, app/Filament/Support/WebpUpload.php,
+  tests/Feature/{EndToEndJourneyTest,ImageProcessingTest}.php
+- **Files modified:** deploy/README.md, app/Filament/Pages/ManageSettings.php,
+  app/Filament/Resources/{Products/Schemas/ProductForm,Products/RelationManagers/VariantsRelationManager,Brands/Schemas/BrandForm}.php
+
+### Chip icons, sortable account CTA, logout return, sticky save bar (same day)
+- **Sticky save bar** on Admin → Settings. The page is ~120 fields, so the button at the very
+  bottom meant scrolling the whole way to keep a one-word edit. Styled with a scoped `<style>`
+  block rather than utility classes: the admin panel is served by Filament's own compiled
+  stylesheet, which only contains the utilities Filament itself uses, so classes added in a
+  custom view can silently do nothing. Verified pinned mid-scroll (bar bottom == viewport
+  bottom at scrollY 2689 of 5378).
+- **Business type icons.** The reference repeats a single Lucide `package-search` glyph on
+  every chip; since types are dashboard-managed and the founder can add their own, each type
+  instead picks from a curated set (`App\Support\BusinessTypeIcons`) and the six seeded types
+  got matching ones — storefront, cross, sparkles, cart, heart, truck. A **key** into a fixed
+  map rather than free-text SVG on purpose: the value renders inline on a public page, so
+  arbitrary markup here would be an XSS hole. Unknown or null keys fall back to the default
+  rather than emitting `<path d="">`.
+- **The account CTA is now sortable**, at the founder's request. Only the hero and trust strip
+  stay pinned — everything below them, the call-to-action included, is theirs to arrange. Its
+  order is set to sit directly before the business-type chips.
+- **Logout returns to the page you were on** instead of always the catalogue. The submitted
+  target is untrusted, so it is constrained twice: same-origin only (otherwise logout becomes
+  an open redirect anyone could aim at a phishing page), and never a page that needs a session
+  or a guest-only auth page, which would bounce straight back. `?hl=` is preserved so the
+  locale survives. Five tests cover the rules including the open-redirect attempt.
+- **Spacing pass.** Three real faults, all consequences of sections becoming reorderable:
+  1. `types` had no top padding at all — fine when it always followed another section, wrong
+     now that any section can lead. All sections normalised to `py-14 sm:py-16`.
+  2. The footer carried `mt-20`, which read as a stray ivory band whenever the page ended on a
+     full-bleed dark section. Footer now sits flush (measured gap 0px); inner pages keep their
+     breathing room via `pb-20` on the default container instead.
+  3. Two sections sharing the page background could end up adjacent with nothing between them.
+     Added a `.home-section + .home-section` hairline — full-bleed bands carry their own
+     border and break the chain naturally, so it only fires on the case that needs it.
+- **Note:** the earlier "WhatsApp renders after business types" report turned out to be a
+  misread — the stored order, `sectionOrder()` and the rendered byte offsets all agreed. The
+  actual ask was the account CTA.
+- **Tests:** 147 passing / 763 assertions (was 135). Added BusinessTypeTest (icons, ordering,
+  visibility, Arabic fallback, empty-list fallback) and the logout redirect cases.
+- **Files added:** app/Support/BusinessTypeIcons.php, resources/views/home/sections/cta.blade.php,
+  tests/Feature/BusinessTypeTest.php, migration 2026_09_07_000006_add_icon_to_business_types_table.
+- **Files modified:** app/Models/BusinessType.php, app/Http/Controllers/BusinessAccountController.php,
+  app/Support/HomeContent.php, app/Filament/Pages/ManageSettings.php,
+  app/Filament/Resources/BusinessTypes/**, resources/views/filament/pages/manage-settings.blade.php,
+  resources/views/layouts/storefront.blade.php, resources/views/home.blade.php,
+  resources/views/home/sections/{types,whatsapp,categories,featured,steps}.blade.php,
+  resources/css/app.css, tests/Feature/HomepageContentTest.php
+
+### Bug: approving an account threw an error (same day)
+Two faults, both introduced by my own shared-trait refactor earlier in the day, both in
+`ReviewsBusinessAccount`:
+1. `afterReview()` was `protected`. Filament binds an action closure to the Livewire
+   component but **not to the class scope**, so the protected callback was unreachable, fell
+   through to Livewire's `__call`, and threw *"Method ViewBusinessAccount::afterReview does
+   not exist"*. The original code only worked because it called the public `fillForm()`.
+   Now public, with the reason written down.
+2. Both page classes declared their own `afterReview()` and called `parent::afterReview()`.
+   A class method shadows the trait's copy, and `parent::` resolves to
+   `ViewRecord`/`EditRecord`, neither of which defines it — a fatal waiting to happen on the
+   next call. Both now do the work directly.
+
+**Why it shipped:** the existing tests asserted the account view *rendered*, never that the
+Approve button *ran*. Added three Livewire action tests (approve from view, reject with
+reason from view, approve from edit) that exercise the buttons and assert the audit trail.
+
+- **Tests:** 135 passing / 725 assertions.
+- **Files added:** app/Http/Middleware/EnsureCanSubmitInquiry.php, app/Models/BusinessType.php,
+  app/Filament/Resources/BusinessTypes/**, resources/views/home/sections/whatsapp.blade.php,
+  migration 2026_09_07_000005_create_business_types_table.
+- **Files modified:** bootstrap/app.php, routes/web.php, app/Models/BusinessAccount.php,
+  app/Support/HomeContent.php, app/Filament/Pages/ManageSettings.php,
+  app/Filament/Resources/BusinessAccounts/{Concerns/ReviewsBusinessAccount,Pages/ViewBusinessAccount,Pages/EditBusinessAccount}.php,
+  resources/views/cart.blade.php, resources/views/home/partials/featured-card.blade.php,
+  resources/views/home/sections/types.blade.php, lang/en/shop.php, lang/ar/shop.php,
+  tests/Feature/{HomePageTest,BusinessAccountReviewTest,InquirySubmissionTest,HomepageContentTest}.php
+
+**Still outstanding:** importing Shopify collections as real categories (replacing the
+keyword-derived `App\Support\Category` stopgap) and the matching dashboard management screen.
+
 ## 2026-07-09
 **Topics:** Added a "Purchase order (PDF)" header action on the inquiry edit page — the
 same document as the customer quote but retitled "Purchase Order" with the customer

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Support\ProductRecommendations;
+use App\Support\RecentlyViewed;
 use Illuminate\View\View;
 
 class CatalogueController extends Controller
@@ -23,8 +25,17 @@ class CatalogueController extends Controller
 
         abort_if($product->variants->isEmpty(), 404);
 
+        // Read the trail before recording this visit, so the rail shows what the
+        // buyer looked at *before* this page rather than leading with it.
+        $recentlyViewed = RecentlyViewed::products($product);
+        RecentlyViewed::record($product);
+
         return view('catalogue.show', [
             'product' => $product,
+            'sameBrand' => ProductRecommendations::sameBrand($product),
+            'similar' => ProductRecommendations::similar($product),
+            'boughtTogether' => ProductRecommendations::boughtTogether($product),
+            'recentlyViewed' => $recentlyViewed,
         ]);
     }
 }

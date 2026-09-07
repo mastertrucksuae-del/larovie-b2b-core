@@ -18,6 +18,9 @@
         </include>
     </source>
     <php>
+        <!-- The admin settings form renders ~120 homepage copy fields in one
+             Livewire pass, which alone outgrows the stock 128M limit. -->
+        <ini name="memory_limit" value="512M"/>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>

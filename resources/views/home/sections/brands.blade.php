@@ -1,0 +1,27 @@
+{{-- Guarded here rather than by the caller: the section is switched on
+     but has nothing to show when no brands resolve from the catalogue. --}}
+@if ($brands->isNotEmpty())
+    <section class="border-y border-line bg-white">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 sm:py-16">
+            <div class="flex items-end justify-between gap-4">
+                <h2 class="font-display text-3xl sm:text-4xl text-ink">{{ $t('featured_brands') }}</h2>
+                <a href="{{ route('catalogue.index') }}" class="inline-flex items-center gap-1.5 text-sm text-rose-deep hover:text-plum transition whitespace-nowrap">
+                    {{ $t('view_all_brands') }}
+                    <svg class="w-4 h-4 rtl:rotate-180" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>
+                </a>
+            </div>
+
+            <ul class="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                @foreach ($brands as $brand)
+                    <li>
+                        <a href="{{ route('catalogue.index', ['q' => $brand->name]) }}"
+                           class="flex h-full flex-col items-center justify-center gap-1 rounded-xl border border-line bg-white px-3 py-5 text-center hover:border-plum/30 hover:shadow-sm transition">
+                            <span class="text-sm font-medium text-ink">{{ $brand->name }}</span>
+                            <span class="text-[11px] text-plum-500">{{ __('shop.products_count', ['count' => $brand->total]) }}</span>
+                        </a>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    </section>
+@endif

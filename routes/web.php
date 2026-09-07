@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\BusinessAccountController;
 use App\Http\Controllers\CatalogueController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InquiryController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\PageController;
@@ -9,13 +10,16 @@ use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
 
+// Marketing homepage — the designed entry point for the storefront.
+Route::get('/', [HomeController::class, 'index'])->name('home');
+
 // Public wholesale catalogue (guest, no auth)
-Route::get('/', [CatalogueController::class, 'index'])->name('catalogue.index');
+Route::get('/catalogue', [CatalogueController::class, 'index'])->name('catalogue.index');
 Route::get('/product/{product:handle}', [CatalogueController::class, 'show'])->name('catalogue.show');
 
 Route::get('/cart', [InquiryController::class, 'cart'])->name('cart');
 Route::post('/inquiry', [InquiryController::class, 'store'])
-    ->middleware('throttle:10,1')
+    ->middleware(['throttle:10,1', 'can-order'])
     ->name('inquiry.store');
 Route::get('/inquiry/{reference}/confirmation', [InquiryController::class, 'confirmation'])
     ->name('inquiry.confirmation');

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Products\Schemas;
 
+use App\Filament\Support\WebpUpload;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Textarea;
@@ -39,13 +40,9 @@ class ProductForm
                     ->description('Upload to override the Shopify image (kept across re-syncs). Leave empty to use the Shopify image.')
                     ->columns(2)
                     ->schema([
-                        FileUpload::make('image_path')
+                        WebpUpload::make('image_path', 'product-images')
                             ->label('Image override')
-                            ->image()
-                            ->imageEditor()
-                            ->disk('public')
-                            ->directory('product-images')
-                            ->maxSize(4096),
+                            ->imageEditor(),
                         Placeholder::make('shopify_image')
                             ->label('Current Shopify image')
                             ->content(fn ($record) => $record?->featured_image_url

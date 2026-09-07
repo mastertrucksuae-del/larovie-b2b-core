@@ -4,7 +4,9 @@ namespace App\Filament\Resources\BusinessAccounts;
 
 use App\Filament\Resources\BusinessAccounts\Pages\EditBusinessAccount;
 use App\Filament\Resources\BusinessAccounts\Pages\ListBusinessAccounts;
+use App\Filament\Resources\BusinessAccounts\Pages\ViewBusinessAccount;
 use App\Filament\Resources\BusinessAccounts\Schemas\BusinessAccountForm;
+use App\Filament\Resources\BusinessAccounts\Schemas\BusinessAccountInfolist;
 use App\Filament\Resources\BusinessAccounts\Tables\BusinessAccountsTable;
 use App\Models\BusinessAccount;
 use BackedEnum;
@@ -46,6 +48,11 @@ class BusinessAccountResource extends Resource
         return BusinessAccountForm::configure($schema);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return BusinessAccountInfolist::configure($schema);
+    }
+
     public static function table(Table $table): Table
     {
         return BusinessAccountsTable::configure($table);
@@ -55,6 +62,7 @@ class BusinessAccountResource extends Resource
     {
         return [
             'index' => ListBusinessAccounts::route('/'),
+            'view' => ViewBusinessAccount::route('/{record}'),
             'edit' => EditBusinessAccount::route('/{record}/edit'),
         ];
     }

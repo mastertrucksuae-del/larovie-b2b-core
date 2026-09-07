@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Inquiry extends Model
@@ -42,6 +43,12 @@ class Inquiry extends Model
                 $inquiry->reference = static::generateReference();
             }
         });
+    }
+
+    /** The signed-in account that submitted this, if any. Guests leave it null. */
+    public function businessAccount(): BelongsTo
+    {
+        return $this->belongsTo(BusinessAccount::class);
     }
 
     public function items(): HasMany

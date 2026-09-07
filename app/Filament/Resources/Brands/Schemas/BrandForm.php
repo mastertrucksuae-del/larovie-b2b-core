@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Brands\Schemas;
 
+use App\Filament\Support\WebpUpload;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
@@ -22,13 +23,9 @@ class BrandForm
                             ->maxLength(255)
                             ->unique(ignoreRecord: true)
                             ->helperText('Exact brand name as used on products.'),
-                        FileUpload::make('logo_path')
+                        WebpUpload::make('logo_path', 'brands')
                             ->label('Logo')
-                            ->image()
-                            ->disk('public')
-                            ->directory('brands')
-                            ->maxSize(2048)
-                            ->helperText('A PNG with a transparent background works best. Max 2 MB.'),
+                            ->helperText('A PNG with a transparent background works best; transparency survives the WebP conversion.'),
                     ]),
             ]);
     }

@@ -18,12 +18,18 @@ class Setting extends Model
      */
     protected $attributes = [
         'search_indexing_enabled' => true,
+        'require_account_review' => true,
     ];
 
     protected $casts = [
         'quote_validity_days' => 'integer',
         'last_synced_at' => 'datetime',
         'search_indexing_enabled' => 'boolean',
+        'require_account_review' => 'boolean',
+        'homepage_content' => 'array',
+        'homepage_sections' => 'array',
+        'homepage_section_order' => 'array',
+        'homepage_featured_count' => 'integer',
     ];
 
     /**

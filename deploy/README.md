@@ -16,6 +16,7 @@ npm ci
 npm run build
 
 php artisan migrate --force
+php artisan storage:link
 php artisan view:clear
 php artisan config:cache
 php artisan route:cache
@@ -25,6 +26,13 @@ php artisan route:cache
 
 `php artisan migrate --force` is what enables search indexing — migration
 `2026_08_10_000001_enable_search_indexing` flips the settings row on.
+
+`php artisan storage:link` is what makes admin-uploaded artwork reachable. Every
+image set in the panel — the logo, the homepage hero, product and variant image
+overrides, brand logos — is written to `storage/app/public` and served from
+`/storage/...`. Without the symlink each one is a 404 on the live site while
+looking perfectly fine in the admin preview. The command is safe to re-run: it
+does nothing when the link already exists.
 
 ## nginx
 
