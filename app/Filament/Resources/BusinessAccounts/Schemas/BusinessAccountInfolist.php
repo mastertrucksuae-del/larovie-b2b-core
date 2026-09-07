@@ -37,6 +37,7 @@ class BusinessAccountInfolist
     private static function status(): Section
     {
         return Section::make('Application status')
+            ->columnSpanFull()
             ->columns(4)
             ->schema([
                 TextEntry::make('status')
@@ -69,6 +70,7 @@ class BusinessAccountInfolist
     private static function applicant(): Section
     {
         return Section::make('Applicant')
+            ->columnSpanFull()
             ->columns(3)
             ->schema([
                 TextEntry::make('company_name')->label('Company')->weight('bold'),
@@ -92,6 +94,7 @@ class BusinessAccountInfolist
     private static function verification(): Section
     {
         return Section::make('Verification')
+            ->columnSpanFull()
             ->columns(2)
             ->schema([
                 TextEntry::make('trade_licence_number')
@@ -110,6 +113,7 @@ class BusinessAccountInfolist
     private static function value(): Section
     {
         return Section::make('Activity & value')
+            ->columnSpanFull()
             ->description('Counts this customer\'s guest inquiries as well as those submitted while signed in.')
             ->columns(4)
             ->schema([
@@ -160,6 +164,7 @@ class BusinessAccountInfolist
     private static function pipeline(): Section
     {
         return Section::make('Where their inquiries sit')
+            ->columnSpanFull()
             ->visible(fn (BusinessAccount $r) => AccountInsights::for($r)->pipeline()->isNotEmpty())
             ->schema([
                 RepeatableEntry::make('insight_pipeline')
@@ -182,6 +187,7 @@ class BusinessAccountInfolist
     private static function topProducts(): Section
     {
         return Section::make('Most requested products')
+            ->columnSpanFull()
             ->visible(fn (BusinessAccount $r) => AccountInsights::for($r)->topProducts()->isNotEmpty())
             ->schema([
                 RepeatableEntry::make('insight_products')
@@ -205,6 +211,7 @@ class BusinessAccountInfolist
     private static function recentInquiries(): Section
     {
         return Section::make('Recent inquiries')
+            ->columnSpanFull()
             ->visible(fn (BusinessAccount $r) => AccountInsights::for($r)->summary()['total'] > 0)
             ->schema([
                 RepeatableEntry::make('insight_recent')

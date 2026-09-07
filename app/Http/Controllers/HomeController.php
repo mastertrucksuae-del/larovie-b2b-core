@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Brand;
 use App\Models\Product;
 use App\Support\Category;
 use App\Support\HomeContent;
@@ -39,7 +40,7 @@ class HomeController extends Controller
      * fallback out in two languages invites the definitions to drift. A few
      * hundred two-column rows group instantly.
      *
-     * @return Collection<int, object{name: string, total: int}>
+     * @return Collection<int, object{name: string, total: int, logo: ?string}>
      */
     private function brands(): Collection
     {
@@ -50,6 +51,10 @@ class HomeController extends Controller
             ->forget('')
             ->map->count();
 
+        // One lookup for the whole strip, keyed by brand name — the same map the
+        // catalogue uses, so a logo uploaded once shows in both places.
+        $logos = Brand::logoUrlMap();
+
         $chosen = HomeContent::featuredBrandNames();
 
         if ($chosen !== []) {
@@ -58,14 +63,22 @@ class HomeController extends Controller
             // would advertise "0 products" and link to an empty search.
             return collect($chosen)
                 ->filter(fn (string $name) => ($counts[$name] ?? 0) > 0)
-                ->map(fn (string $name) => (object) ['name' => $name, 'total' => (int) $counts[$name]])
+                ->map(fn (string $name) => (object) [
+                    'name' => $name,
+                    'total' => (int) $counts[$name],
+                    'logo' => $logos[$name] ?? null,
+                ])
                 ->values();
         }
 
         return $counts
             ->sortDesc()
             ->take(self::BRAND_LIMIT)
-            ->map(fn (int $total, string $name) => (object) ['name' => $name, 'total' => $total])
+            ->map(fn (int $total, string $name) => (object) [
+                'name' => $name,
+                'total' => $total,
+                'logo' => $logos[$name] ?? null,
+            ])
             ->values();
     }
 

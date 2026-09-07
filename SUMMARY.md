@@ -178,6 +178,30 @@ tests/Feature/HomePageTest.php (new)
   the moment it ran. The homepage section reads the table and falls back to the shipped list
   if it is ever emptied, so it can never render as a bare heading.
 
+### Brand logos on the homepage, account view layout (same day)
+- **Homepage brand strip now shows logos**, matching the catalogue. Both read the
+  same `Brand::logoUrlMap()`, so a logo uploaded once appears in both places.
+  Each brand renders as a fixed white tile with the artwork contained inside it,
+  so brands read as one system whatever shape or aspect their logo is; the brand
+  name stands in when no logo has been uploaded. Verified both branches by
+  seeding one logo locally: 1 logo tile + 11 name tiles rendered, then reverted.
+  Note that **no brand has a logo in the local database** (0 of 50) — production
+  has them, which is why the live catalogue shows logos and local does not.
+- **Business account view page laid out properly.** Filament puts infolist
+  sections in a two-column page grid by default, which left the profile as a
+  ragged pair of columns — short cards beside tall ones, dead gaps down the
+  middle, and the applicant block squeezed enough that the email address wrapped
+  mid-word. All seven sections now span the full width, so the profile reads as a
+  single vertical stack.
+- **Not visually confirmed:** repeated admin logins through browser automation
+  failed this session (session state kept dropping), so the account page change
+  is verified structurally (7/7 sections) and by the test that renders the page,
+  not by eye.
+- **Tests:** 170 passing / 993 assertions.
+- **Files modified:** app/Http/Controllers/HomeController.php,
+  resources/views/home/sections/brands.blade.php,
+  app/Filament/Resources/BusinessAccounts/Schemas/BusinessAccountInfolist.php
+
 ### Upload still hanging: raised the PHP limits (same day)
 Follow-up to the "Waiting for size" hang. Forensics on the stuck upload:
 `storage/app/private/livewire-tmp` held only a 129-byte `.json` sidecar and no

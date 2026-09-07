@@ -14,9 +14,25 @@
             <ul class="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 @foreach ($brands as $brand)
                     <li>
+                        {{-- Same tile treatment as the catalogue's brand strip: a fixed
+                             white plate with the logo contained inside it, so brands read
+                             as one system whatever shape or aspect their artwork is.
+                             The name stands in when no logo has been uploaded yet. --}}
                         <a href="{{ route('catalogue.index', ['q' => $brand->name]) }}"
-                           class="flex h-full flex-col items-center justify-center gap-1 rounded-xl border border-line bg-white px-3 py-5 text-center hover:border-plum/30 hover:shadow-sm transition">
-                            <span class="text-sm font-medium text-ink">{{ $brand->name }}</span>
+                           class="group relative flex h-full flex-col items-center justify-center gap-2 rounded-xl border border-line bg-white px-3 py-5 text-center hover:border-plum/40 hover:shadow-sm transition"
+                           title="{{ $brand->name }}">
+                            @if ($brand->logo)
+                                <span class="flex h-12 w-full items-center justify-center">
+                                    <img src="{{ $brand->logo }}" alt="{{ $brand->name }}"
+                                         width="112" height="48"
+                                         class="max-h-full max-w-full object-contain"
+                                         loading="lazy" decoding="async">
+                                </span>
+                            @else
+                                <span class="flex h-12 items-center justify-center text-sm font-medium text-ink group-hover:text-plum transition line-clamp-2 leading-tight">
+                                    {{ $brand->name }}
+                                </span>
+                            @endif
                             <span class="text-[11px] text-plum-500">{{ __('shop.products_count', ['count' => $brand->total]) }}</span>
                         </a>
                     </li>
