@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\Categories\Tables;
 
 use App\Models\Category;
+use App\Http\Controllers\HomeController;
+use App\Support\HomeContent;
 use App\Support\Img;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\ImageColumn;
@@ -13,6 +15,36 @@ use Filament\Tables\Table;
 
 class CategoriesTable
 {
+    /** Why a category is, or is not, tiling on the homepage. */
+    private static function homepageStatus(Category $record): string
+    {
+        if ($record->is_archived) {
+            return 'Archived in Shopify';
+        }
+
+        if (! $record->is_visible) {
+            return 'Switched off';
+        }
+
+        if ((int) ($record->visible_products_count ?? 0) === 0) {
+            return 'No live products';
+        }
+
+        $picked = HomeContent::featuredCategoryIds();
+
+        if ($picked !== [] && ! in_array($record->id, $picked, true)) {
+            return 'Not picked in Settings';
+        }
+
+        // Asks the homepage itself, so the badge can never drift from what the
+        // storefront actually renders — including the limit on how many tile.
+        if (! Category::forHomepage(HomeController::CATEGORY_LIMIT)->contains('id', $record->id)) {
+            return 'Beyond the first '.HomeController::CATEGORY_LIMIT;
+        }
+
+        return 'Showing';
+    }
+
     public static function configure(Table $table): Table
     {
         return $table
@@ -29,15 +61,25 @@ class CategoriesTable
                     ->searchable()
                     ->weight('bold')
                     ->description(fn (Category $record) => $record->title_ar ?: 'No Arabic name yet'),
-                TextColumn::make('products_count')
-                    ->label('Products')
-                    ->counts('products')
+                // Counts only what the storefront can actually show. The raw
+                // relation count is misleading: a category can hold 85 products
+                // and still tile to nothing if none of them are visible.
+                TextColumn::make('visible_products_count')
+                    ->label('Live products')
+                    ->counts(['products as visible_products_count' => fn ($q) => $q->publiclyVisible()])
                     ->badge()
-                    ->color('gray'),
+                    ->color(fn (?int $state) => $state > 0 ? 'gray' : 'danger'),
                 // Toggled straight from the list: switching a category on is the
                 // single most common action here, and opening an edit page to
                 // flip one boolean is friction for no gain.
                 ToggleColumn::make('is_visible')->label('Shown'),
+                // Turns "why isn't this on the homepage?" from guesswork into an
+                // answer. Every rule that can silently drop a category is named.
+                TextColumn::make('homepage_status')
+                    ->label('On homepage')
+                    ->badge()
+                    ->state(fn (Category $record) => self::homepageStatus($record))
+                    ->color(fn (string $state) => $state === 'Showing' ? 'success' : 'warning'),
                 TextColumn::make('synced_at')
                     ->label('Last imported')
                     ->dateTime('d M Y, H:i')

@@ -178,6 +178,35 @@ tests/Feature/HomePageTest.php (new)
   the moment it ran. The homepage section reads the table and falls back to the shipped list
   if it is ever emptied, so it can never render as a bare heading.
 
+### "Reordered a category and it vanished" — made the admin explain itself (same day)
+Reordering was reported as not reaching the storefront. Reordering itself works —
+reproduced locally, a category dragged to the top tiles first. But **three
+separate rules can silently drop a category**, and all three produce the same
+symptom, so there was no way to tell which one had been hit:
+
+1. switched off (reordering does not switch a category on)
+2. no *live* products inside it — visible products, not just products
+3. hand-picked categories set in Settings, which override the ordering entirely
+   (and a fourth: only the first 8 tile)
+
+Nothing in the admin surfaced any of it. Two fixes:
+
+- **The product count was actively misleading.** The list counted every related
+  product, so a category could read "85" and still tile to nothing because none
+  were visible. It now counts publicly visible products only — the number that
+  actually decides — and turns red at zero.
+- **New "On homepage" badge** naming the exact reason: Switched off / No live
+  products / Not picked in Settings / Beyond the first 8 / Showing.
+
+To keep that badge honest it asks the homepage rather than re-deriving the rules:
+the decision moved into `Category::forHomepage()`, used by both the controller and
+the admin, so the badge cannot drift from what the storefront renders.
+
+- **Tests:** 197 passing / 1,060 assertions (was 193). New cases cover reordering,
+  the limit, the all-hidden-products case, and picks overriding order.
+- **Files modified:** app/Models/Category.php, app/Http/Controllers/HomeController.php,
+  app/Filament/Resources/Categories/Tables/CategoriesTable.php, tests/Feature/CategoryTest.php
+
 ### Inline visibility toggle + category artwork (same day)
 - **"Shown" is now an inline toggle** on Categories and Business types, matching
   the Products table which already worked that way. Switching a category on is

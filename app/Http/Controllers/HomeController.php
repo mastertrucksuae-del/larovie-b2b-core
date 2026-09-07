@@ -18,7 +18,7 @@ use Illuminate\View\View;
  */
 class HomeController extends Controller
 {
-    private const CATEGORY_LIMIT = 8;
+    public const CATEGORY_LIMIT = 8;
 
     private const BRAND_LIMIT = 12;
 
@@ -45,31 +45,12 @@ class HomeController extends Controller
      */
     private function categories(): Collection
     {
-        $chosen = HomeContent::featuredCategoryIds();
-
-        $imported = Category::query()
-            ->visible()
-            ->withCount(['products as total' => fn ($q) => $q->publiclyVisible()])
-            // A hand-picked list is honoured in full and in the order chosen;
-            // the limit only governs the automatic selection.
-            ->when($chosen !== [], fn ($q) => $q->whereIn('id', $chosen))
-            ->when($chosen === [], fn ($q) => $q->take(self::CATEGORY_LIMIT))
-            ->get();
-
-        if ($chosen !== []) {
-            $imported = $imported->sortBy(
-                fn (Category $category) => array_search($category->id, $chosen, true)
-            );
-        }
-
-        // An imported category with nothing visible in it would tile through to
-        // an empty listing, so it is dropped rather than shown.
-        $imported = $imported->filter(fn (Category $category) => $category->total > 0);
+        $imported = Category::forHomepage(self::CATEGORY_LIMIT);
 
         if ($imported->isNotEmpty()) {
             return $imported->map(fn (Category $category) => (object) [
                 'label' => $category->label,
-                'total' => (int) $category->total,
+                'total' => (int) $category->visible_products_count,
                 'image' => $category->display_image,
                 'url' => route('catalogue.index', ['category' => $category->id]),
             ])->values();

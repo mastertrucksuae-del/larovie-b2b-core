@@ -62,6 +62,40 @@ class Category extends Model
     }
 
     /**
+     * The categories that actually tile on the homepage, in order.
+     *
+     * Lives here rather than in the controller so the admin list can ask the
+     * same question and explain itself. Four things can drop a category —
+     * switched off, archived, nothing live inside it, or not among the
+     * hand-picked set — and a fifth, the limit, applies last.
+     *
+     * @return \Illuminate\Support\Collection<int, self>
+     */
+    public static function forHomepage(int $limit): \Illuminate\Support\Collection
+    {
+        $picked = \App\Support\HomeContent::featuredCategoryIds();
+
+        $categories = static::query()
+            ->visible()
+            ->withCount(['products as visible_products_count' => fn ($q) => $q->publiclyVisible()])
+            ->when($picked !== [], fn ($q) => $q->whereIn('id', $picked))
+            ->get()
+            // A category with nothing live in it would tile through to an empty
+            // listing, so it never appears however it is ordered.
+            ->filter(fn (self $category) => (int) $category->visible_products_count > 0);
+
+        if ($picked !== []) {
+            // An explicit choice is honoured in full and in the order chosen;
+            // the limit only governs the automatic selection.
+            return $categories
+                ->sortBy(fn (self $category) => array_search($category->id, $picked, true))
+                ->values();
+        }
+
+        return $categories->take($limit)->values();
+    }
+
+    /**
      * Artwork for this category, in order of preference.
      *
      * Admin override, then the Shopify collection image, then a product from

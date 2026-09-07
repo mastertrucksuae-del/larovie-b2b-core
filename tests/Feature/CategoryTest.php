@@ -300,6 +300,83 @@ class CategoryTest extends TestCase
             ->assertSee('homepage_featured_category_ids', escape: false);
     }
 
+    // ── What actually tiles, and why ────────────────────────────────────────
+
+    public function test_reordering_changes_the_homepage_order(): void
+    {
+        $this->product(1);
+        $this->product(2);
+
+        $this->import([
+            ['id' => 100, 'title' => 'Alpha', 'products' => [1]],
+            ['id' => 200, 'title' => 'Promotions', 'products' => [2]],
+        ]);
+        Category::query()->update(['is_visible' => true]);
+
+        Category::where('title', 'Alpha')->update(['sort_order' => 1]);
+        Category::where('title', 'Promotions')->update(['sort_order' => 0]);
+
+        $this->assertSame(
+            ['Promotions', 'Alpha'],
+            Category::forHomepage(8)->pluck('title')->all()
+        );
+    }
+
+    public function test_only_the_first_n_categories_tile(): void
+    {
+        // The silent rule that is easiest to trip over: reorder a category below
+        // the cut-off and it vanishes even though it is switched on.
+        $this->product(1);
+
+        $collections = [];
+        foreach (range(1, 10) as $i) {
+            $collections[] = ['id' => 100 + $i, 'title' => "Cat {$i}", 'products' => [1]];
+        }
+        $this->import($collections);
+        Category::query()->update(['is_visible' => true]);
+        Category::query()->orderBy('id')->get()->each(fn ($c, $i) => $c->update(['sort_order' => $i]));
+
+        $tiled = Category::forHomepage(8);
+
+        $this->assertCount(8, $tiled);
+        $this->assertFalse($tiled->contains('title', 'Cat 10'));
+    }
+
+    public function test_a_category_whose_products_are_all_hidden_does_not_tile(): void
+    {
+        $product = $this->product(1);
+        $this->import([['id' => 100, 'title' => 'Promotions', 'products' => [1]]]);
+        Category::query()->update(['is_visible' => true]);
+
+        $this->assertCount(1, Category::forHomepage(8));
+
+        $product->update(['is_visible' => false]);
+
+        $this->assertCount(0, Category::forHomepage(8), 'It would otherwise tile through to an empty listing.');
+    }
+
+    public function test_picking_categories_overrides_the_reordering(): void
+    {
+        // The trap worth knowing: once anything is picked in Settings, dragging
+        // rows on the Categories page no longer changes the homepage.
+        $this->product(1);
+        $this->import([
+            ['id' => 100, 'title' => 'Alpha', 'products' => [1]],
+            ['id' => 200, 'title' => 'Promotions', 'products' => [1]],
+        ]);
+        Category::query()->update(['is_visible' => true]);
+
+        Setting::current()->update([
+            'homepage_featured_category_ids' => [Category::where('title', 'Alpha')->value('id')],
+        ]);
+        Setting::clearCache();
+
+        $tiled = Category::forHomepage(8)->pluck('title')->all();
+
+        $this->assertSame(['Alpha'], $tiled);
+        $this->assertNotContains('Promotions', $tiled);
+    }
+
     // ── Artwork ─────────────────────────────────────────────────────────────
 
     public function test_a_category_without_its_own_image_borrows_one_from_a_product(): void
