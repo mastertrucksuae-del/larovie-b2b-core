@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Support\WebpUpload;
+use App\Models\Product;
 use App\Models\Setting;
 use App\Support\HomeContent;
 use BackedEnum;
@@ -106,8 +107,38 @@ class ManageSettings extends Page
                             ->helperText('Replaces the automatic four-product collage. Landscape, roughly 4:3. Converted to WebP and resized.')
                             ->columnSpanFull(),
                         TextInput::make('homepage_featured_count')
-                            ->label('Featured products shown')
+                            ->label('Featured products shown (automatic mode)')
+                            ->helperText('Only used when no products are picked below.')
                             ->numeric()->minValue(4)->maxValue(24)->default(8),
+
+                        Select::make('homepage_featured_product_ids')
+                            ->label('Featured products')
+                            ->helperText('Leave empty to show the earliest products that have images. Picked products appear in the order you add them.')
+                            ->multiple()
+                            ->searchable()
+                            // Searched rather than listing every option: the
+                            // catalogue runs to hundreds of products and
+                            // rendering them all would bloat the page.
+                            ->getSearchResultsUsing(fn (string $search) => Product::query()
+                                ->publiclyVisible()
+                                ->where('title', 'like', '%'.$search.'%')
+                                ->orderBy('title')
+                                ->limit(50)
+                                ->pluck('title', 'id')
+                                ->all())
+                            ->getOptionLabelsUsing(fn (array $values) => Product::query()
+                                ->whereIn('id', $values)
+                                ->pluck('title', 'id')
+                                ->all())
+                            ->columnSpanFull(),
+
+                        Select::make('homepage_featured_brands')
+                            ->label('Featured brands')
+                            ->helperText('Leave empty to show the brands with the most products. A brand with nothing in stock is skipped.')
+                            ->multiple()
+                            ->searchable()
+                            ->options(fn () => self::brandOptions())
+                            ->columnSpanFull(),
 
                         Section::make('Sections shown')
                             ->description('The hero and trust strip always sit at the top of the page.')
@@ -184,6 +215,28 @@ class ManageSettings extends Page
      *
      * @return array<int, Toggle>
      */
+    /**
+     * Brand names that actually appear on the storefront.
+     *
+     * Read off the products rather than the brands table: a storefront "brand"
+     * is `brand ?: vendor` resolved per product, so this is the only list whose
+     * values match what the homepage section groups and links on.
+     *
+     * @return array<string, string>
+     */
+    private static function brandOptions(): array
+    {
+        return Product::query()
+            ->publiclyVisible()
+            ->get(['brand', 'vendor'])
+            ->map(fn (Product $product) => (string) $product->effective_brand)
+            ->filter()
+            ->unique()
+            ->sort()
+            ->mapWithKeys(fn (string $name) => [$name => $name])
+            ->all();
+    }
+
     /** @return array<string, string> */
     private static function sectionLabels(): array
     {

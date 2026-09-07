@@ -178,6 +178,38 @@ tests/Feature/HomePageTest.php (new)
   the moment it ran. The homepage section reads the table and falls back to the shipped list
   if it is ever emptied, so it can never render as a bare heading.
 
+### Hand-picked featured products and brands (same day)
+The homepage's featured grid and brand strip can now be chosen in
+Settings -> Homepage instead of being derived. Two nullable JSON columns
+(`homepage_featured_product_ids`, `homepage_featured_brands`); empty means
+"choose automatically", so the page is never blank on a fresh install and
+clearing the picks restores the old behaviour rather than emptying the section.
+
+- Products are stored as ids and **shown in the order picked**. Scoped to
+  `publiclyVisible()`, so a product hidden or archived after being picked drops
+  off rather than reappearing on the homepage.
+- Brands are stored as **names**, not brands-table ids: a storefront "brand" is
+  `brand ?: vendor` resolved off the product row, which is what the section
+  groups and links on, so the name is the only stable key.
+- A picked brand with nothing visible to sell is skipped — the chip states a
+  product count, so leaving it in would advertise "0 products" and link to an
+  empty search. Verified live: picking "Round Lab" (0 products in this
+  catalogue) correctly renders nothing while "Medicube" (65) renders.
+- The existing count field now only governs automatic mode; an explicit pick is
+  shown in full. Its label says so.
+- The product picker searches rather than listing every option — the catalogue
+  runs to hundreds of rows and rendering them all would bloat the settings page.
+
+**Test-authoring note:** the first brand assertion checked the whole page and
+failed, because a brand name also appears as the label on each product card.
+Scoped to the brand strip rather than loosened.
+
+- **Tests:** 170 passing / 993 assertions.
+- **Files added:** migration 2026_09_07_000007_add_homepage_featured_picks_to_settings_table
+- **Files modified:** app/Models/Setting.php, app/Support/HomeContent.php,
+  app/Http/Controllers/HomeController.php, app/Filament/Pages/ManageSettings.php,
+  tests/Feature/HomepageContentTest.php
+
 ### Bug: the hero image uploader hung on "Waiting for size" (same day)
 **Cause, and it was mine.** `WebpUpload` advertised `maxSize(12 * 1024)` — 12MB —
 while this PHP allows `upload_max_filesize = 2M` (and `post_max_size = 8M`).

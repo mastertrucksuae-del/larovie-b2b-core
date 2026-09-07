@@ -222,6 +222,39 @@ class HomeContent
         return filled($path) ? Storage::disk('public')->url($path) : null;
     }
 
+    /**
+     * Hand-picked featured product ids, in the order chosen.
+     *
+     * Empty means "choose automatically" — the caller falls back rather than
+     * rendering an empty grid.
+     *
+     * @return array<int, int>
+     */
+    public static function featuredProductIds(): array
+    {
+        $ids = Setting::current()->homepage_featured_product_ids ?? [];
+
+        return array_values(array_unique(array_filter(
+            array_map('intval', (array) $ids),
+            fn (int $id) => $id > 0,
+        )));
+    }
+
+    /**
+     * Hand-picked brand names, in the order chosen. Empty means automatic.
+     *
+     * @return array<int, string>
+     */
+    public static function featuredBrandNames(): array
+    {
+        $names = Setting::current()->homepage_featured_brands ?? [];
+
+        return array_values(array_unique(array_filter(
+            array_map(fn ($name) => trim((string) $name), (array) $names),
+            fn (string $name) => $name !== '',
+        )));
+    }
+
     public static function featuredCount(): int
     {
         $count = (int) (Setting::current()->homepage_featured_count ?: 8);

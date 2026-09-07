@@ -32,14 +32,14 @@ class HomepageContentTest extends TestCase
         Setting::clearCache();
     }
 
-    private function makeProduct(string $title = 'Heartleaf Soothing Serum'): Product
+    private function makeProduct(string $title = 'Heartleaf Soothing Serum', string $brand = 'Anua'): Product
     {
         $product = Product::factory()->create([
             'title' => $title,
             'is_visible' => true,
             'is_archived' => false,
             'is_bundle' => false,
-            'brand' => 'Anua',
+            'brand' => $brand,
             'featured_image_url' => 'https://cdn.shopify.com/x.jpg',
         ]);
 
@@ -165,6 +165,122 @@ class HomepageContentTest extends TestCase
         Setting::current()->update(['homepage_featured_count' => 0]);
         Setting::clearCache();
         $this->assertSame(8, HomeContent::featuredCount(), 'Zero should fall back to the default, not empty the grid.');
+    }
+
+    // ── Hand-picked featured products and brands ────────────────────────────
+
+    public function test_featured_products_are_picked_automatically_when_none_are_chosen(): void
+    {
+        $a = $this->makeProduct('Automatic Alpha');
+        $b = $this->makeProduct('Automatic Beta');
+
+        $this->get(route('home'))->assertOk()->assertSee($a->title)->assertSee($b->title);
+    }
+
+    public function test_choosing_featured_products_shows_exactly_those_in_the_chosen_order(): void
+    {
+        $first = $this->makeProduct('Chosen First');
+        $second = $this->makeProduct('Chosen Second');
+        $ignored = $this->makeProduct('Not Chosen');
+
+        Setting::current()->update(['homepage_featured_product_ids' => [$second->id, $first->id]]);
+        Setting::clearCache();
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('Not Chosen', $html);
+        $this->assertLessThan(
+            mb_strpos($html, 'Chosen First'),
+            mb_strpos($html, 'Chosen Second'),
+            'Products should appear in the order they were picked.'
+        );
+    }
+
+    public function test_a_picked_product_that_is_later_hidden_drops_off_the_homepage(): void
+    {
+        $shown = $this->makeProduct('Still Visible');
+        $hidden = $this->makeProduct('Since Hidden');
+
+        Setting::current()->update(['homepage_featured_product_ids' => [$shown->id, $hidden->id]]);
+        Setting::clearCache();
+        $hidden->update(['is_visible' => false]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Still Visible')
+            ->assertDontSee('Since Hidden');
+    }
+
+    /** The brands strip alone — a brand name also appears on each product card. */
+    private function brandsSection(string $html): string
+    {
+        $start = mb_strpos($html, __('shop.featured_brands'));
+
+        if ($start === false) {
+            return '';
+        }
+
+        $end = mb_strpos($html, '</section>', $start);
+
+        return mb_substr($html, $start, $end === false ? null : $end - $start);
+    }
+
+    public function test_choosing_featured_brands_shows_exactly_those_in_order(): void
+    {
+        $this->makeProduct('Soothing Toner', 'Anua');
+        $this->makeProduct('Dokdo Toner', 'Round Lab');
+        $this->makeProduct('Zero Pore Pad', 'Medicube');
+
+        Setting::current()->update(['homepage_featured_brands' => ['Round Lab', 'Anua']]);
+        Setting::clearCache();
+
+        $section = $this->brandsSection($this->get(route('home'))->assertOk()->getContent());
+
+        $this->assertStringNotContainsString('Medicube', $section, 'An unpicked brand must not appear in the strip.');
+        $this->assertLessThan(
+            mb_strpos($section, 'Anua'),
+            mb_strpos($section, 'Round Lab'),
+            'Brands should appear in the order they were picked.'
+        );
+    }
+
+    public function test_a_picked_brand_with_nothing_visible_is_skipped(): void
+    {
+        // The chip states a product count, so an empty brand would advertise
+        // "0 products" and link to an empty search.
+        $this->makeProduct('Soothing Toner', 'Anua');
+
+        Setting::current()->update(['homepage_featured_brands' => ['Anua', 'Ghost Brand']]);
+        Setting::clearCache();
+
+        $section = $this->brandsSection($this->get(route('home'))->assertOk()->getContent());
+
+        $this->assertStringContainsString('Anua', $section);
+        $this->assertStringNotContainsString('Ghost Brand', $section);
+    }
+
+    public function test_clearing_the_picks_returns_to_automatic_selection(): void
+    {
+        $product = $this->makeProduct('Back To Automatic');
+
+        Setting::current()->update([
+            'homepage_featured_product_ids' => [],
+            'homepage_featured_brands' => null,
+        ]);
+        Setting::clearCache();
+
+        $this->get(route('home'))->assertOk()->assertSee('Back To Automatic');
+    }
+
+    public function test_the_settings_page_offers_both_pickers(): void
+    {
+        $html = $this->actingAs(User::factory()->create())
+            ->get(ManageSettings::getUrl())
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('homepage_featured_product_ids', $html);
+        $this->assertStringContainsString('homepage_featured_brands', $html);
     }
 
     // ── Section order ───────────────────────────────────────────────────────

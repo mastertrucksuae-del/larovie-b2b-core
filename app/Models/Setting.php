@@ -29,6 +29,8 @@ class Setting extends Model
         'homepage_content' => 'array',
         'homepage_sections' => 'array',
         'homepage_section_order' => 'array',
+        'homepage_featured_product_ids' => 'array',
+        'homepage_featured_brands' => 'array',
         'homepage_featured_count' => 'integer',
     ];
 
