@@ -178,6 +178,22 @@ tests/Feature/HomePageTest.php (new)
   the moment it ran. The homepage section reads the table and falls back to the shipped list
   if it is ever emptied, so it can never render as a bare heading.
 
+### Inquiry header tidied (same day)
+The inquiry edit page carried five equal-weight buttons, which crowded the header
+and pushed the reference into a two-line wrap.
+
+**Nothing was removed** — every action is still one click away. The three
+document actions (Generate PDF quote, Purchase order, Export CSV) now sit behind
+a single "Documents" control, leaving the two that end the conversation with the
+customer in the open: Chat on WhatsApp, and the green Send quote via WhatsApp.
+
+Grouped by intent rather than by trimming: produce a document, talk to the
+customer, send the quote. Verified after the restructure that all five action
+definitions survived.
+
+- **Tests:** 227 passing / 1,123 assertions.
+- **Files modified:** app/Filament/Resources/Inquiries/Pages/EditInquiry.php
+
 ### Licence preview modal + settings tabs (same day)
 - **Trade licence opens in a modal** on the business account view page instead of
   downloading. Reviewing an application means reading the licence, and a round

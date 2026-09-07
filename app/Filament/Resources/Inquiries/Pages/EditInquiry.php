@@ -7,6 +7,7 @@ use App\Models\Inquiry;
 use App\Services\Quote\QuoteService;
 use App\Services\WhatsApp\WhatsAppLink;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 
@@ -17,43 +18,51 @@ class EditInquiry extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            // Five equal-weight buttons crowded the header and pushed the
+            // reference into a two-line wrap. Nothing is removed — the three
+            // document actions simply live behind one control, leaving the two
+            // that end the conversation with the customer in the open.
+            ActionGroup::make([
+                Action::make('generatePdf')
+                    ->label('Generate PDF quote')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->action(function (QuoteService $quotes) {
+                        $inquiry = $this->getRecord();
+                        $quotes->generatePdf($inquiry);
+                        $this->refreshFormData(['quote_number', 'quote_valid_until', 'quoted_total']);
+
+                        Notification::make()
+                            ->title('Quote PDF generated')
+                            ->success()
+                            ->actions([
+                                Action::make('view')
+                                    ->label('Open PDF')
+                                    ->url(WhatsAppLink::quoteLink($inquiry), shouldOpenInNewTab: true),
+                            ])
+                            ->send();
+                    }),
+                Action::make('purchaseOrder')
+                    ->label('Purchase order (PDF)')
+                    ->icon('heroicon-o-clipboard-document-list')
+                    ->color('gray')
+                    ->action(fn (QuoteService $quotes) => $quotes->purchaseOrderResponse($this->getRecord())),
+                Action::make('exportCsv')
+                    ->label('Export CSV')
+                    ->icon('heroicon-o-table-cells')
+                    ->color('gray')
+                    ->action(fn (QuoteService $quotes) => $quotes->csvResponse($this->getRecord())),
+            ])
+                ->label('Documents')
+                ->icon('heroicon-o-document-duplicate')
+                ->color('gray')
+                ->button(),
+
             Action::make('chat')
                 ->label('Chat on WhatsApp')
                 ->icon('heroicon-o-chat-bubble-left-right')
                 ->color('gray')
                 ->url(fn () => WhatsAppLink::chat($this->getRecord()))
                 ->openUrlInNewTab(),
-
-            Action::make('generatePdf')
-                ->label('Generate PDF quote')
-                ->icon('heroicon-o-document-arrow-down')
-                ->action(function (QuoteService $quotes) {
-                    $inquiry = $this->getRecord();
-                    $quotes->generatePdf($inquiry);
-                    $this->refreshFormData(['quote_number', 'quote_valid_until', 'quoted_total']);
-
-                    Notification::make()
-                        ->title('Quote PDF generated')
-                        ->success()
-                        ->actions([
-                            Action::make('view')
-                                ->label('Open PDF')
-                                ->url(WhatsAppLink::quoteLink($inquiry), shouldOpenInNewTab: true),
-                        ])
-                        ->send();
-                }),
-
-            Action::make('purchaseOrder')
-                ->label('Purchase order (PDF)')
-                ->icon('heroicon-o-clipboard-document-list')
-                ->color('gray')
-                ->action(fn (QuoteService $quotes) => $quotes->purchaseOrderResponse($this->getRecord())),
-
-            Action::make('exportCsv')
-                ->label('Export CSV')
-                ->icon('heroicon-o-table-cells')
-                ->color('gray')
-                ->action(fn (QuoteService $quotes) => $quotes->csvResponse($this->getRecord())),
 
             Action::make('sendWhatsApp')
                 ->label('Send quote via WhatsApp')
