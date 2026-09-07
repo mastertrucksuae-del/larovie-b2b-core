@@ -31,6 +31,7 @@ class Setting extends Model
         'homepage_section_order' => 'array',
         'homepage_featured_product_ids' => 'array',
         'homepage_featured_brands' => 'array',
+        'homepage_featured_category_ids' => 'array',
         'homepage_featured_count' => 'integer',
     ];
 

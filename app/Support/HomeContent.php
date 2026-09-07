@@ -241,6 +241,21 @@ class HomeContent
     }
 
     /**
+     * Hand-picked category ids, in the order chosen. Empty means automatic.
+     *
+     * @return array<int, int>
+     */
+    public static function featuredCategoryIds(): array
+    {
+        $ids = Setting::current()->homepage_featured_category_ids ?? [];
+
+        return array_values(array_unique(array_filter(
+            array_map('intval', (array) $ids),
+            fn (int $id) => $id > 0,
+        )));
+    }
+
+    /**
      * Hand-picked brand names, in the order chosen. Empty means automatic.
      *
      * @return array<int, string>

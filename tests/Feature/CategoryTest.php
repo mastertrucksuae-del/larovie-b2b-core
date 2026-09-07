@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Resources\Categories\CategoryResource;
 use App\Models\Category;
+use App\Models\Setting;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\User;
@@ -214,6 +215,89 @@ class CategoryTest extends TestCase
 
         $category->update(['title_ar' => 'تونر']);
         $this->assertSame('تونر', $category->refresh()->label);
+    }
+
+    // ── Hand-picking which categories tile ──────────────────────────────────
+
+    private function importThreeVisible(): array
+    {
+        $this->product(1);
+
+        $this->import([
+            ['id' => 100, 'title' => 'Alpha Cat', 'products' => [1]],
+            ['id' => 200, 'title' => 'Beta Cat', 'products' => [1]],
+            ['id' => 300, 'title' => 'Gamma Cat', 'products' => [1]],
+        ]);
+
+        Category::query()->update(['is_visible' => true]);
+
+        return Category::orderBy('shopify_collection_id')->pluck('id', 'title')->all();
+    }
+
+    public function test_all_visible_categories_tile_when_none_are_picked(): void
+    {
+        $this->importThreeVisible();
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        foreach (['Alpha Cat', 'Beta Cat', 'Gamma Cat'] as $title) {
+            $this->assertStringContainsString($title, $html);
+        }
+    }
+
+    public function test_picking_categories_shows_exactly_those_in_the_chosen_order(): void
+    {
+        $ids = $this->importThreeVisible();
+
+        Setting::current()->update([
+            'homepage_featured_category_ids' => [$ids['Gamma Cat'], $ids['Alpha Cat']],
+        ]);
+        Setting::clearCache();
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('Beta Cat', $html, 'An unpicked category must not tile.');
+        $this->assertLessThan(
+            mb_strpos($html, 'Alpha Cat'),
+            mb_strpos($html, 'Gamma Cat'),
+            'Categories should tile in the order they were picked.'
+        );
+    }
+
+    public function test_a_picked_category_later_hidden_drops_off(): void
+    {
+        $ids = $this->importThreeVisible();
+
+        Setting::current()->update([
+            'homepage_featured_category_ids' => [$ids['Alpha Cat'], $ids['Beta Cat']],
+        ]);
+        Setting::clearCache();
+        Category::where('id', $ids['Beta Cat'])->update(['is_visible' => false]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Alpha Cat')
+            ->assertDontSee('Beta Cat');
+    }
+
+    public function test_clearing_the_picks_returns_to_automatic(): void
+    {
+        $this->importThreeVisible();
+
+        Setting::current()->update(['homepage_featured_category_ids' => []]);
+        Setting::clearCache();
+
+        $this->get(route('home'))->assertOk()->assertSee('Beta Cat');
+    }
+
+    public function test_the_settings_page_offers_a_category_picker(): void
+    {
+        $this->importThreeVisible();
+
+        $this->actingAs(User::factory()->create(), 'web')
+            ->get(\App\Filament\Pages\ManageSettings::getUrl())
+            ->assertOk()
+            ->assertSee('homepage_featured_category_ids', escape: false);
     }
 
     // ── The admin screen ────────────────────────────────────────────────────

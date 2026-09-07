@@ -178,6 +178,25 @@ tests/Feature/HomePageTest.php (new)
   the moment it ran. The homepage section reads the table and falls back to the shipped list
   if it is ever emptied, so it can never render as a bare heading.
 
+### Featured categories picker (same day)
+Settings -> Homepage now has a **Featured categories** picker beside the existing
+product and brand ones, so all three homepage strips are chosen the same way.
+
+- Empty means "choose automatically" — the visible categories in the order set on
+  the Categories page — so the section keeps working before anyone touches it.
+- A hand-picked list is honoured **in full and in the order chosen**; the
+  category limit only governs the automatic selection.
+- Stored as ids rather than names: unlike brands, a category is a real record, so
+  a rename cannot break the pick.
+- Only categories switched on under Admin -> Categories can be picked, and one
+  hidden after being picked drops off the homepage rather than 404-ing a tile.
+
+- **Tests:** 187 passing / 1,043 assertions (was 182).
+- **Files added:** migration 2026_09_07_000009_add_homepage_featured_categories_to_settings_table
+- **Files modified:** app/Models/Setting.php, app/Support/HomeContent.php,
+  app/Http/Controllers/HomeController.php, app/Filament/Pages/ManageSettings.php,
+  tests/Feature/CategoryTest.php
+
 ### Categories management + licence number removed from public copy (same day)
 **Categories are now real, and manageable.** This had been flagged as outstanding
 several times without ever being built — the admin genuinely had no way to manage

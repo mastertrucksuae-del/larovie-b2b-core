@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Support\WebpUpload;
+use App\Models\Category;
 use App\Models\Product;
 use App\Models\Setting;
 use App\Support\HomeContent;
@@ -128,6 +129,17 @@ class ManageSettings extends Page
                                 ->all())
                             ->getOptionLabelsUsing(fn (array $values) => Product::query()
                                 ->whereIn('id', $values)
+                                ->pluck('title', 'id')
+                                ->all())
+                            ->columnSpanFull(),
+
+                        Select::make('homepage_featured_category_ids')
+                            ->label('Featured categories')
+                            ->helperText('Leave empty to show your visible categories in their Categories-page order. Only categories switched on there can be picked.')
+                            ->multiple()
+                            ->searchable()
+                            ->options(fn () => Category::query()
+                                ->visible()
                                 ->pluck('title', 'id')
                                 ->all())
                             ->columnSpanFull(),
