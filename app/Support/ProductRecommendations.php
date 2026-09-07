@@ -53,7 +53,7 @@ class ProductRecommendations
      */
     public static function similar(Product $product, int $limit = 6): Collection
     {
-        $keys = Category::keysFor($product->title);
+        $keys = DerivedCategories::keysFor($product->title);
 
         if ($keys === []) {
             return collect();
@@ -61,7 +61,7 @@ class ProductRecommendations
 
         $brand = $product->effective_brand;
 
-        $query = fn () => Category::scopeKeys(self::base($product), $keys);
+        $query = fn () => DerivedCategories::scopeKeys(self::base($product), $keys);
 
         $others = $query()
             ->when(filled($brand), fn (Builder $q) => $q

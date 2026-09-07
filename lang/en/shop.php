@@ -186,7 +186,7 @@ return [
     // Trust strip
     'trust_authentic' => '100% Authentic Products',
     'trust_registered' => 'UAE Registered Business',
-    'trust_licence' => 'Trade Licence: :number',
+    'trust_licence' => 'Licensed Wholesale Supplier',
     'trust_support' => 'Dedicated Wholesale Support',
     'trust_response' => 'Fast Enquiry Response',
     'trust_secure' => 'Secure Business Ordering',
@@ -218,7 +218,7 @@ return [
     'why_4_title' => 'A clear ordering experience',
     'why_4_body' => 'Collect products in one list and send it as an enquiry.',
     'why_5_title' => 'Registered in Dubai',
-    'why_5_body' => 'Trade licence :number, based in Business Bay.',
+    'why_5_body' => 'A UAE registered business, based in Business Bay, Dubai.',
     'why_6_title' => 'Built for every business',
     'why_6_body' => 'From pharmacies to salons to online stores.',
 
@@ -261,7 +261,7 @@ return [
     'cat_masks' => 'Masks & Patches',
     'cat_haircare' => 'Haircare',
     'cat_body_care' => 'Body Care',
-    'why_5_body_no_licence' => 'A UAE registered business, based in Business Bay, Dubai.',
+    'licence_registered' => 'Licensed & registered in the UAE',
     'whatsapp' => 'WhatsApp',
     'register_approved' => 'Your business account is ready. Sign in to see wholesale pricing.',
     'rail_similar' => 'Similar products',

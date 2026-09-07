@@ -134,7 +134,7 @@ class HomeContent
     ];
 
     /** Keys that carry a `:number` placeholder the admin must preserve. */
-    public const PLACEHOLDER_KEYS = ['trust_licence', 'why_5_body'];
+    public const PLACEHOLDER_KEYS = [];
 
     /** Keys using Laravel's `singular|plural` form. */
     public const PLURAL_KEYS = ['min_order'];

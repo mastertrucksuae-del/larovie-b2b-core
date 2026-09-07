@@ -7,7 +7,6 @@
     // sections before the parent template runs, so the layout's own $settings
     // does not exist yet at this point.
     $settings = \App\Models\Setting::current();
-    $licence = $settings->trade_licence_number;
 
     // Every string resolves through HomeContent, so an override saved in
     // Settings -> Homepage wins and anything left blank falls back to the
@@ -105,14 +104,10 @@
                     ];
                 @endphp
                 @foreach ($trust as [$key, $path])
-                    {{-- The licence item carries a real number or it is not a trust
-                         signal at all, so it is dropped when unset. --}}
-                    @if ($key !== 'trust_licence' || filled($licence))
-                        <li class="inline-flex items-center gap-2">
-                            <svg class="w-[18px] h-[18px] shrink-0 text-rose-accent" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $path }}"/></svg>
-                            <span>{{ $key === 'trust_licence' ? $t($key, ['number' => $licence]) : $t($key) }}</span>
-                        </li>
-                    @endif
+                    <li class="inline-flex items-center gap-2">
+                        <svg class="w-[18px] h-[18px] shrink-0 text-rose-accent" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $path }}"/></svg>
+                        <span>{{ $t($key) }}</span>
+                    </li>
                 @endforeach
             </ul>
         </div>

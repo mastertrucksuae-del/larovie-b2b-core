@@ -178,6 +178,53 @@ tests/Feature/HomePageTest.php (new)
   the moment it ran. The homepage section reads the table and falls back to the shipped list
   if it is ever emptied, so it can never render as a bare heading.
 
+### Categories management + licence number removed from public copy (same day)
+**Categories are now real, and manageable.** This had been flagged as outstanding
+several times without ever being built — the admin genuinely had no way to manage
+them. Now:
+- `categories` table + `category_product` pivot, imported from Shopify collections
+  by `ProductSyncService::syncCollections()`. Same ownership split as products:
+  Shopify owns title/handle/image and refreshes them each import; the admin owns
+  visibility, ordering, the Arabic name and an image override, and a sync never
+  touches those. A collection removed upstream is **archived, not deleted**, so a
+  mistake in Shopify cannot take an admin's settings and translations with it.
+- Imported categories arrive **hidden** — an import must never silently publish a
+  new section of the storefront. The nav badge counts unreviewed ones.
+- Admin → Categories: list with drag-reorder, visibility toggle, Arabic name,
+  WebP image override, and an "Import from Shopify" action. No manual creation,
+  for the same reason products have none.
+- The homepage prefers imported visible categories and falls back to the
+  keyword-guessed `App\Support\DerivedCategories` (renamed from `Support\Category`
+  to end the clash with the new model) when nothing has been imported, so the
+  section still works on a store that has not synced.
+- Tiles link to `/catalogue?category=<id>`, and the catalogue filters on real
+  membership rather than a text search.
+
+**Trade licence number removed from all public copy.** The number now appears
+only where it is the *applicant's own* (registration form, their account page,
+the admin's KYC view). Larovie's own licence number is gone from the trust strip,
+the "Registered in Dubai" card, the footer and the contact page, replaced by a
+plain statement of registration. A test asserts the number never renders on
+public pages.
+
+**Two bugs of my own, caught by the suite:**
+- The rename left `Category::withCounts()` in `HomeController::index()` pointing
+  at the new Eloquent model, which has no such method. A string replacement had
+  silently no-opped because the earlier sed had already changed the import.
+- Editing the trust strip removed an `@if` but left its `@endif`, unbalancing the
+  template (4 vs 5). Caught before it shipped.
+
+- **Tests:** 182 passing / 1,029 assertions (was 170).
+- **Files added:** app/Models/Category.php, app/Filament/Resources/Categories/**,
+  tests/Feature/CategoryTest.php, migration 2026_09_07_000008_create_categories_table
+- **Files modified:** app/Support/DerivedCategories.php (renamed),
+  app/Services/Shopify/ProductSyncService.php, app/Http/Controllers/HomeController.php,
+  app/Models/Product.php, app/Support/HomeContent.php,
+  resources/views/components/catalogue.blade.php, resources/views/home.blade.php,
+  resources/views/home/sections/{why,categories}.blade.php,
+  resources/views/layouts/storefront.blade.php, resources/views/pages/contact.blade.php,
+  lang/en/shop.php, lang/ar/shop.php, tests/Feature/HomepageContentTest.php
+
 ### Brand logos on the homepage, account view layout (same day)
 - **Homepage brand strip now shows logos**, matching the catalogue. Both read the
   same `Brand::logoUrlMap()`, so a logo uploaded once appears in both places.

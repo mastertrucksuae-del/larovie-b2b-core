@@ -18,6 +18,10 @@ new class extends Component
     #[Url(history: true)]
     public ?string $type = null;
 
+    /** Imported Shopify collection to filter by, set by the homepage tiles. */
+    #[Url(history: true)]
+    public ?int $category = null;
+
     public int $perPage = 24;
 
     public const SORTS = [
@@ -32,7 +36,7 @@ new class extends Component
     public function updated($property): void
     {
         // Any filter/sort change restarts the infinite scroll from the top.
-        if (in_array($property, ['search', 'sort', 'type'], true)) {
+        if (in_array($property, ['search', 'sort', 'type', 'category'], true)) {
             $this->perPage = 24;
         }
     }
@@ -71,7 +75,7 @@ new class extends Component
 
     public function clearFilters(): void
     {
-        $this->reset(['search', 'type']);
+        $this->reset(['search', 'type', 'category']);
         $this->sort = 'brand';
         $this->perPage = 24;
     }
@@ -116,7 +120,11 @@ new class extends Component
                         ->orWhereHas('variants', fn ($v) => $v->where('sku', 'like', $term));
                 });
             })
-            ->when($this->type, fn ($q) => $q->where('product_type', $this->type));
+            ->when($this->type, fn ($q) => $q->where('product_type', $this->type))
+            ->when($this->category, fn ($q) => $q->whereHas(
+                'categories',
+                fn ($c) => $c->where('categories.id', $this->category)
+            ));
     }
 
     protected function baseQuery()

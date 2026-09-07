@@ -3,6 +3,7 @@
 namespace App\Services\Shopify;
 
 use App\Models\Brand;
+use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Setting;
@@ -68,6 +69,9 @@ class ProductSyncService
         } while ($cursor !== null);
 
         $this->archiveMissing();
+
+        // After products exist, so collection membership can attach to them.
+        $this->syncCollections();
 
         // Keep the admin-managed brands list in step with the catalogue so a logo
         // can be uploaded for every brand. Existing logos are preserved.
@@ -211,6 +215,94 @@ class ProductSyncService
             $pageInfo = $connection['pageInfo'] ?? [];
             $cursor = ($pageInfo['hasNextPage'] ?? false) ? ($pageInfo['endCursor'] ?? null) : null;
         } while ($cursor !== null);
+    }
+
+    /**
+     * Import Shopify collections as categories.
+     *
+     * Shopify owns the title, handle and image; visibility, ordering, the Arabic
+     * name and any image override belong to the admin and are never written here.
+     * New collections arrive hidden so nothing appears on the storefront until
+     * someone has looked at it.
+     */
+    public function syncCollections(): void
+    {
+        $cursor = null;
+        $seen = [];
+
+        do {
+            $data = $this->client->query($this->collectionsQuery(), ['cursor' => $cursor]);
+            $connection = $data['collections'] ?? ['nodes' => [], 'pageInfo' => []];
+
+            foreach ($connection['nodes'] ?? [] as $node) {
+                $shopifyId = (int) ($node['legacyResourceId'] ?? 0);
+
+                if ($shopifyId === 0) {
+                    continue;
+                }
+
+                $seen[] = $shopifyId;
+
+                $category = Category::firstOrNew(['shopify_collection_id' => $shopifyId]);
+                $isNew = ! $category->exists;
+
+                $category->fill([
+                    'title' => $node['title'] ?? '',
+                    'handle' => $node['handle'] ?? null,
+                    'image_url' => $node['image']['url'] ?? null,
+                    'is_archived' => false,
+                    'synced_at' => now(),
+                ]);
+
+                if ($isNew) {
+                    // Hidden until reviewed — an import should never silently
+                    // publish a section of the storefront.
+                    $category->is_visible = false;
+                }
+
+                $category->save();
+
+                $productIds = collect($node['products']['nodes'] ?? [])
+                    ->pluck('legacyResourceId')
+                    ->filter()
+                    ->map(fn ($id) => (int) $id);
+
+                $category->products()->sync(
+                    Product::whereIn('shopify_product_id', $productIds)->pluck('id')->all()
+                );
+            }
+
+            $pageInfo = $connection['pageInfo'] ?? [];
+            $cursor = ($pageInfo['hasNextPage'] ?? false) ? ($pageInfo['endCursor'] ?? null) : null;
+        } while ($cursor !== null);
+
+        // Archived rather than deleted: a collection removed upstream by mistake
+        // should not take its admin settings and translations with it.
+        if ($seen !== []) {
+            Category::whereNotNull('shopify_collection_id')
+                ->whereNotIn('shopify_collection_id', $seen)
+                ->update(['is_archived' => true]);
+        }
+    }
+
+    protected function collectionsQuery(): string
+    {
+        return <<<'GRAPHQL'
+        query Collections($cursor: String) {
+          collections(first: 50, after: $cursor) {
+            pageInfo { hasNextPage endCursor }
+            nodes {
+              legacyResourceId
+              handle
+              title
+              image { url }
+              products(first: 250) {
+                nodes { legacyResourceId }
+              }
+            }
+          }
+        }
+        GRAPHQL;
     }
 
     protected function brandsQuery(): string

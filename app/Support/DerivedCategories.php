@@ -6,9 +6,13 @@ use App\Models\Product;
 use Illuminate\Support\Collection;
 
 /**
- * Product categories for the homepage "Shop by Category" grid.
+ * Keyword-guessed categories — the FALLBACK, used only when no real ones exist.
  *
- * STOPGAP — read before extending. The catalogue has no category taxonomy of its
+ * Superseded by App\Models\Category, which imports real Shopify collections.
+ * This remains as the safety net for a store that has not run a collection sync
+ * yet, so "Shop by Category" is never an empty heading on a fresh install.
+ *
+ * Original note, still true of the data it works around: The catalogue has no category taxonomy of its
  * own: `products.product_type` is empty for ~80% of visible products and holds a
  * unique marketing sentence for the rest, `tags` covers well under a third, and
  * Shopify collections are not imported by the sync at all. So categories are
@@ -22,7 +26,7 @@ use Illuminate\Support\Collection;
  * A product may match more than one category, which is intended — a "Sun Serum"
  * belongs under both Sun Care and Serums.
  */
-class Category
+class DerivedCategories
 {
     /**
      * Keyword patterns per category, matched case-insensitively against the title.

@@ -113,11 +113,30 @@ class HomepageContentTest extends TestCase
 
     public function test_an_override_keeps_placeholder_substitution(): void
     {
+        // Retargeted from trust_licence, which used to interpolate the trade
+        // licence number. Public copy no longer prints that number anywhere —
+        // it states registration instead — but the substitution mechanism is
+        // still live for :count, so the coverage moves rather than disappears.
+        $this->makeProduct();
+        $this->setOverrides(['en' => ['min_order' => 'Order at least :count unit|Order at least :count units']]);
+
+        $this->assertSame(
+            'Order at least 12 units',
+            HomeContent::choice('min_order', 12, ['count' => 12])
+        );
+    }
+
+    public function test_public_pages_state_registration_without_the_licence_number(): void
+    {
         Setting::current()->update(['trade_licence_number' => '39037']);
         Setting::clearCache();
-        $this->setOverrides(['en' => ['trust_licence' => 'Licence no. :number']]);
 
-        $this->get(route('home'))->assertOk()->assertSee('Licence no. 39037');
+        foreach ([route('home'), route('contact')] as $url) {
+            $this->get($url)
+                ->assertOk()
+                ->assertSee(__('shop.licence_registered'))
+                ->assertDontSee('39037');
+        }
     }
 
     public function test_an_override_keeps_plural_forms(): void

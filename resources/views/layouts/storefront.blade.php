@@ -374,9 +374,8 @@
                         @if ($settings->company_address)
                             <p>{{ $settings->company_address }}</p>
                         @endif
-                        @if ($settings->trade_licence_number)
-                            <p>{{ __('shop.trade_licence') }}: <span dir="ltr">{{ $settings->trade_licence_number }}</span></p>
-                        @endif
+                        {{-- Registration is stated, never the licence number. --}}
+                        <p>{{ __('shop.licence_registered') }}</p>
                         @if ($settings->trn)
                             <p>{{ __('shop.trn') }}: <span dir="ltr">{{ $settings->trn }}</span></p>
                         @endif

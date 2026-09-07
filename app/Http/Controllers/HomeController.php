@@ -3,8 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Brand;
+use App\Models\Category;
 use App\Models\Product;
-use App\Support\Category;
+use App\Support\DerivedCategories;
 use App\Support\HomeContent;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -24,10 +25,54 @@ class HomeController extends Controller
     public function index(): View
     {
         return view('home', [
-            'categories' => Category::withCounts()->take(self::CATEGORY_LIMIT),
+            'categories' => $this->categories(),
             'brands' => $this->brands(),
             'featured' => $this->featured(),
         ]);
+    }
+
+    /**
+     * Category tiles.
+     *
+     * Real Shopify collections when any have been imported and made visible;
+     * otherwise the keyword-guessed fallback, so a store that has not run a
+     * collection sync still gets a working section instead of a blank heading.
+     *
+     * Both shapes expose the same fields the view reads, so the template does
+     * not care which source it got.
+     *
+     * @return Collection<int, object{label: string, total: int, image: ?string, url: string}>
+     */
+    private function categories(): Collection
+    {
+        $imported = Category::query()
+            ->visible()
+            ->withCount(['products as total' => fn ($q) => $q->publiclyVisible()])
+            ->take(self::CATEGORY_LIMIT)
+            ->get();
+
+        // An imported category with nothing visible in it would tile through to
+        // an empty listing, so it is dropped rather than shown.
+        $imported = $imported->filter(fn (Category $category) => $category->total > 0);
+
+        if ($imported->isNotEmpty()) {
+            return $imported->map(fn (Category $category) => (object) [
+                'label' => $category->label,
+                'total' => (int) $category->total,
+                'image' => $category->display_image,
+                'url' => route('catalogue.index', ['category' => $category->id]),
+            ])->values();
+        }
+
+        return DerivedCategories::withCounts()
+            ->take(self::CATEGORY_LIMIT)
+            ->map(fn (object $category) => (object) [
+                'label' => $category->label,
+                'total' => $category->total,
+                'image' => $category->image,
+                'url' => route('catalogue.index', ['q' => $category->search]),
+            ])
+            ->values();
     }
 
     /**

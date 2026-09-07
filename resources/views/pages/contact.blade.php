@@ -78,9 +78,7 @@
 
                 <div class="pt-2 border-t border-line text-sm text-plum-600 space-y-1">
                     <p class="text-ink font-medium">{{ $settings->legal_entity_name ?: $settings->company_name }}</p>
-                    @if ($settings->trade_licence_number)
-                        <p>{{ __('shop.trade_licence') }}: <span dir="ltr">{{ $settings->trade_licence_number }}</span></p>
-                    @endif
+                    <p>{{ __('shop.licence_registered') }}</p>
                     @if ($settings->trn)
                         <p>{{ __('shop.trn') }}: <span dir="ltr">{{ $settings->trn }}</span></p>
                     @endif

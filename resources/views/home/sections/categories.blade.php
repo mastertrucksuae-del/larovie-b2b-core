@@ -12,7 +12,7 @@
 
         <div class="mt-8 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
             @foreach ($categories as $category)
-                <a href="{{ route('catalogue.index', ['q' => $category->search]) }}"
+                <a href="{{ $category->url }}"
                    class="group flex flex-col rounded-2xl bg-white ring-1 ring-line overflow-hidden hover:ring-plum/20 hover:shadow-[0_12px_40px_-12px_rgba(36,19,39,0.16)] transition duration-300">
                     <div class="aspect-[4/3] overflow-hidden bg-sand">
                         @if ($category->image)

@@ -7,9 +7,7 @@
                 <div class="rounded-2xl bg-white ring-1 ring-line p-6">
                     <h3 class="text-sm font-semibold text-ink">{{ $t("why_{$i}_title") }}</h3>
                     <p class="mt-2 text-sm leading-relaxed text-plum-600">
-                        {{ $i === 5
-                            ? ($licence ? $t('why_5_body', ['number' => $licence]) : __('shop.why_5_body_no_licence'))
-                            : $t("why_{$i}_body") }}
+                        {{ $t("why_{$i}_body") }}
                     </p>
                 </div>
             @endforeach
