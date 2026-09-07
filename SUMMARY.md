@@ -178,6 +178,32 @@ tests/Feature/HomePageTest.php (new)
   the moment it ran. The homepage section reads the table and falls back to the shipped list
   if it is ever emptied, so it can never render as a bare heading.
 
+### Inline visibility toggle + category artwork (same day)
+- **"Shown" is now an inline toggle** on Categories and Business types, matching
+  the Products table which already worked that way. Switching a category on is
+  the most common action on that screen; opening an edit page to flip one boolean
+  was friction for no gain.
+- **Categories borrow artwork from a product when the collection has none.**
+  Order of preference: admin override, then the Shopify collection image, then a
+  product from inside the category. Plenty of Shopify collections carry no image,
+  and without this both the homepage tile and the admin list render an empty grey
+  box. The lookup reuses an eager-loaded relation where the caller provided one,
+  so a list does not fire a query per row.
+- **Regression I introduced, now fixed.** Making the public disk serve
+  root-relative URLs (to end the CORS/host mismatch) broke every admin image
+  column. Filament's `ImageColumn` only passes a value through when it validates
+  as an absolute URL and otherwise prefixes the disk again, turning
+  `/storage/x.webp` into `/storage//storage/x.webp`. Added `Img::absolute()` and
+  applied it to all four columns — categories, products, variants and brands.
+  Absolute CDN URLs pass through untouched, so the storefront keeps its
+  same-origin relative URLs.
+
+- **Tests:** 193 passing / 1,053 assertions (was 187). New cases cover the
+  artwork preference chain and the absolutiser in both directions.
+- **Files modified:** app/Models/Category.php, app/Support/Img.php,
+  app/Filament/Resources/{Categories,BusinessTypes,Products,Brands}/**,
+  tests/Feature/{CategoryTest,ImageProcessingTest}.php
+
 ### Featured categories picker (same day)
 Settings -> Homepage now has a **Featured categories** picker beside the existing
 product and brand ones, so all three homepage strips are chosen the same way.

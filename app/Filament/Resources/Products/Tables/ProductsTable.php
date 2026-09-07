@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Products\Tables;
 
+use App\Support\Img;
 use App\Models\Product;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
@@ -26,6 +27,7 @@ class ProductsTable
             ->columns([
                 ImageColumn::make('display_image')
                     ->label('')
+                    ->state(fn (Product $record) => Img::absolute($record->display_image))
                     ->height(44)
                     ->square(),
                 TextColumn::make('title')

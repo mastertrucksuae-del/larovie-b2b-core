@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Products\RelationManagers;
 
+use App\Support\Img;
 use App\Filament\Support\WebpUpload;
 use App\Models\ProductVariant;
 use Filament\Actions\EditAction;
@@ -52,6 +53,7 @@ class VariantsRelationManager extends RelationManager
             ->columns([
                 ImageColumn::make('display_image')
                     ->label('')
+                    ->state(fn ($record) => Img::absolute($record->display_image))
                     ->height(40)
                     ->square(),
                 TextColumn::make('title')

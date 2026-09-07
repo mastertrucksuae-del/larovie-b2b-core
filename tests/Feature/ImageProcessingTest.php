@@ -137,6 +137,29 @@ class ImageProcessingTest extends TestCase
         $this->assertNotSame('', WebpUpload::humanLimit());
     }
 
+    public function test_stored_urls_are_absolutised_for_the_admin_panel(): void
+    {
+        // The public disk serves root-relative URLs so storefront images stay
+        // same-origin. Filament's ImageColumn only passes a value through when
+        // it validates as an absolute URL, and otherwise prefixes the disk
+        // again — turning /storage/x.webp into /storage//storage/x.webp.
+        $relative = Storage::disk('public')->url('branding/logo.webp');
+        $this->assertStringStartsWith('/storage/', $relative, 'The disk should serve relative URLs.');
+
+        $absolute = \App\Support\Img::absolute($relative);
+
+        $this->assertNotFalse(filter_var($absolute, FILTER_VALIDATE_URL), 'Filament needs a valid absolute URL.');
+        $this->assertStringNotContainsString('/storage//storage/', $absolute);
+    }
+
+    public function test_absolutising_leaves_a_cdn_url_untouched(): void
+    {
+        $cdn = 'https://cdn.shopify.com/s/files/1/x.jpg';
+
+        $this->assertSame($cdn, \App\Support\Img::absolute($cdn));
+        $this->assertNull(\App\Support\Img::absolute(null));
+    }
+
     public function test_a_file_that_is_not_an_image_is_never_mangled(): void
     {
         $pdf = UploadedFile::fake()->create('licence.pdf', 10, 'application/pdf');

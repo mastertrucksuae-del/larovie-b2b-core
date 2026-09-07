@@ -3,10 +3,11 @@
 namespace App\Filament\Resources\Categories\Tables;
 
 use App\Models\Category;
+use App\Support\Img;
 use Filament\Actions\EditAction;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 
@@ -16,7 +17,13 @@ class CategoriesTable
     {
         return $table
             ->columns([
-                ImageColumn::make('display_image')->label('')->square(),
+                ImageColumn::make('display_image')
+                    ->label('')
+                    ->state(fn (Category $record) => Img::absolute($record->display_image))
+                    ->height(44)
+                    ->width(44)
+                    ->extraImgAttributes(['class' => 'object-cover rounded-lg'])
+                    ->defaultImageUrl(asset('images/larovie-logo-dark.webp')),
                 TextColumn::make('title')
                     ->label('Category')
                     ->searchable()
@@ -27,9 +34,10 @@ class CategoriesTable
                     ->counts('products')
                     ->badge()
                     ->color('gray'),
-                IconColumn::make('is_visible')
-                    ->label('Shown')
-                    ->boolean(),
+                // Toggled straight from the list: switching a category on is the
+                // single most common action here, and opening an edit page to
+                // flip one boolean is friction for no gain.
+                ToggleColumn::make('is_visible')->label('Shown'),
                 TextColumn::make('synced_at')
                     ->label('Last imported')
                     ->dateTime('d M Y, H:i')

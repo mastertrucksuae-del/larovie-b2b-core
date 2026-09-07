@@ -61,11 +61,45 @@ class Category extends Model
         return (string) $this->title;
     }
 
-    /** Admin override if uploaded, otherwise the Shopify collection image. */
+    /**
+     * Artwork for this category, in order of preference.
+     *
+     * Admin override, then the Shopify collection image, then a product from
+     * inside the category. That last step matters: plenty of Shopify collections
+     * carry no image at all, and without it both the homepage tile and the admin
+     * list render an empty grey box.
+     */
     public function getDisplayImageAttribute(): ?string
     {
-        return filled($this->image_path)
-            ? Storage::disk('public')->url($this->image_path)
-            : $this->image_url;
+        if (filled($this->image_path)) {
+            return Storage::disk('public')->url($this->image_path);
+        }
+
+        if (filled($this->image_url)) {
+            return $this->image_url;
+        }
+
+        return $this->firstProductImage();
+    }
+
+    /**
+     * A product image to stand in for the category.
+     *
+     * Uses an already-loaded relation when the caller eager-loaded one, so a
+     * list of categories does not fire a query per row.
+     */
+    private function firstProductImage(): ?string
+    {
+        $products = $this->relationLoaded('products')
+            ? $this->products
+            : $this->products()
+                ->publiclyVisible()
+                ->where(function ($q) {
+                    $q->whereNotNull('featured_image_url')->orWhereNotNull('image_path');
+                })
+                ->limit(1)
+                ->get();
+
+        return optional($products->first(fn ($product) => filled($product->display_image)))->display_image;
     }
 }

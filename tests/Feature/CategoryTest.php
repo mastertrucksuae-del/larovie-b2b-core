@@ -300,6 +300,47 @@ class CategoryTest extends TestCase
             ->assertSee('homepage_featured_category_ids', escape: false);
     }
 
+    // ── Artwork ─────────────────────────────────────────────────────────────
+
+    public function test_a_category_without_its_own_image_borrows_one_from_a_product(): void
+    {
+        // Plenty of Shopify collections carry no image. Without this fallback
+        // both the homepage tile and the admin list render an empty grey box.
+        $this->product(1);
+        $this->import([['id' => 100, 'title' => 'Toners', 'products' => [1]]]);
+
+        $category = Category::firstOrFail();
+
+        $this->assertNull($category->image_url);
+        $this->assertSame('https://cdn.shopify.com/x.jpg', $category->display_image);
+    }
+
+    public function test_the_collection_image_wins_over_a_product_image(): void
+    {
+        $this->product(1);
+        $this->import([['id' => 100, 'title' => 'Toners', 'image' => 'https://cdn.shopify.com/collection.jpg', 'products' => [1]]]);
+
+        $this->assertSame('https://cdn.shopify.com/collection.jpg', Category::firstOrFail()->display_image);
+    }
+
+    public function test_an_admin_override_wins_over_everything(): void
+    {
+        $this->product(1);
+        $this->import([['id' => 100, 'title' => 'Toners', 'image' => 'https://cdn.shopify.com/collection.jpg', 'products' => [1]]]);
+
+        $category = Category::firstOrFail();
+        $category->update(['image_path' => 'category-images/mine.webp']);
+
+        $this->assertStringContainsString('category-images/mine.webp', $category->refresh()->display_image);
+    }
+
+    public function test_a_category_with_no_artwork_anywhere_returns_null(): void
+    {
+        $this->import([['id' => 100, 'title' => 'Empty']]);
+
+        $this->assertNull(Category::firstOrFail()->display_image);
+    }
+
     // ── The admin screen ────────────────────────────────────────────────────
 
     public function test_the_admin_can_manage_categories(): void

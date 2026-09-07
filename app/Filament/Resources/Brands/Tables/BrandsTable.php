@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Brands\Tables;
 
+use App\Support\Img;
 use App\Models\Brand;
 use App\Models\Product;
 use Filament\Actions\BulkActionGroup;
@@ -19,6 +20,7 @@ class BrandsTable
             ->columns([
                 ImageColumn::make('logo_url')
                     ->label('Logo')
+                    ->state(fn ($record) => Img::absolute($record->logo_url))
                     ->height(40)
                     ->extraImgAttributes(['style' => 'object-fit:contain;'])
                     ->placeholder('No logo'),

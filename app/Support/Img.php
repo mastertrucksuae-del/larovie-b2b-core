@@ -19,6 +19,21 @@ class Img
 
     public const HERO_WIDTHS = [400, 600, 800, 1000, 1400];
 
+    /**
+     * Absolutise a stored-file URL for contexts that demand a full one.
+     *
+     * The public disk serves root-relative URLs so storefront images stay
+     * same-origin on any host. Filament's ImageColumn, though, only passes a
+     * value through when it validates as an absolute URL — anything else it
+     * prefixes with the disk again, turning `/storage/x.webp` into
+     * `/storage//storage/x.webp`. Absolute URLs (the Shopify CDN) are returned
+     * untouched, so this is safe to apply to any image source.
+     */
+    public static function absolute(?string $url): ?string
+    {
+        return filled($url) ? url($url) : null;
+    }
+
     /** True when the CDN behind this URL can resize it for us. */
     public static function isResizable(?string $url): bool
     {

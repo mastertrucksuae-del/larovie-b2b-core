@@ -7,8 +7,8 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use App\Support\BusinessTypeIcons;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
 
 class BusinessTypesTable
@@ -23,7 +23,7 @@ class BusinessTypesTable
                     ->label('Icon')
                     ->formatStateUsing(fn (?string $state) => BusinessTypeIcons::options()[$state] ?? 'Storefront')
                     ->color('gray'),
-                IconColumn::make('is_visible')->label('Shown')->boolean(),
+                ToggleColumn::make('is_visible')->label('Shown'),
             ])
             // Drag to set the order the chips appear in on the homepage.
             ->reorderable('sort_order')
