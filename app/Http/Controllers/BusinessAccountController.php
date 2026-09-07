@@ -33,6 +33,7 @@ class BusinessAccountController extends Controller
             'contact_person' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:business_accounts,email'],
             'phone' => ['required', 'string', 'max:30'],
+            'phone_country' => ['nullable', 'string', 'size:2', \Illuminate\Validation\Rule::in(array_keys(\App\Support\Countries::options()))],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'trade_licence_number' => ['nullable', 'string', 'max:100'],
             'trade_licence' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
@@ -51,7 +52,11 @@ class BusinessAccountController extends Controller
             'company_name' => $data['company_name'],
             'contact_person' => $data['contact_person'],
             'email' => $data['email'],
-            'phone' => $data['phone'],
+            // Stored E.164 so it matches inquiry numbers and works in wa.me links.
+            'phone' => \App\Support\PhoneNumber::toE164(
+                $data['phone'],
+                $data['phone_country'] ?? \App\Support\PhoneNumber::DEFAULT_REGION,
+            ),
             'password' => $data['password'], // hashed via model cast
             'trade_licence_number' => $data['trade_licence_number'] ?? null,
             'trade_licence_path' => $path,

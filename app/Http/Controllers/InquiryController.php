@@ -35,6 +35,7 @@ class InquiryController extends Controller
         $data = $request->validate([
             'customer_name' => ['required', 'string', 'max:255'],
             'customer_mobile' => ['required', 'string', 'max:30'],
+            'customer_mobile_country' => ['nullable', 'string', 'size:2', \Illuminate\Validation\Rule::in(array_keys(\App\Support\Countries::options()))],
             'is_whatsapp' => ['sometimes', 'boolean'],
             'customer_email' => ['nullable', 'email', 'max:255'],
             'customer_company' => ['nullable', 'string', 'max:255'],

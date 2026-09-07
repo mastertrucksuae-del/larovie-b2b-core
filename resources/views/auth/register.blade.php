@@ -42,11 +42,7 @@
                     <input id="r_email" name="email" type="email" value="{{ old('email') }}" required dir="ltr"
                            class="w-full rounded-lg border border-line bg-ivory px-3 py-2.5 focus:border-plum focus:ring-1 focus:ring-plum outline-none">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-ink mb-1.5" for="r_phone">{{ __('shop.mobile') }}</label>
-                    <input id="r_phone" name="phone" value="{{ old('phone') }}" required dir="ltr"
-                           class="w-full rounded-lg border border-line bg-ivory px-3 py-2.5 focus:border-plum focus:ring-1 focus:ring-plum outline-none">
-                </div>
+                <x-phone-field name="phone" id="r_phone" :label="__('shop.mobile')" required />
                 <div>
                     <label class="block text-sm font-medium text-ink mb-1.5" for="r_pass">{{ __('shop.password') }}</label>
                     <input id="r_pass" name="password" type="password" required

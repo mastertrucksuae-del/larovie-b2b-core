@@ -178,6 +178,39 @@ tests/Feature/HomePageTest.php (new)
   the moment it ran. The homepage section reads the table and falls back to the shipped list
   if it is ever emptied, so it can never render as a bare heading.
 
+### Phone entry: country picker + libphonenumber (same day)
+Mobile fields now pair a country picker with a plain number box, on all three
+forms (cart, registration, contact).
+
+- Installed `giggsey/libphonenumber-for-php-lite` and rewrote `App\Support\PhoneNumber`
+  on it. The old hand-rolled rules could not tell a bare national number from one
+  that merely began with the country's own digits, and knew nothing of real
+  national prefixes, so a Saudi or British number came out mangled.
+- **A code entered by hand is never doubled**, which was the specific ask:
+  `501112222`, `0501112222`, `971501112222`, `+971501112222` and `00971501112222`
+  all resolve to `+971501112222`.
+- `split()` turns a stored E.164 value back into region + national digits, so an
+  edit form shows "+971 [50 111 2222]" rather than "+971 [+971501112222]".
+- Country list is built from libphonenumber's own regions (245) so the codes can
+  never drift from the parser, named via intl, with the GCC pinned to the top.
+- Registration now stores E.164 too, matching inquiry numbers and wa.me links.
+- Unparseable input degrades to best-effort rather than throwing: a slightly
+  wrong number stored is recoverable, a failed inquiry submission is not.
+
+**Design note.** `Geo` first also read a region out of `Accept-Language`. A test
+caught it defaulting to `US`, and that is not a testing artefact — `en-US` is the
+commonest browser locale on earth, so the signal would have put a Dubai buyer on
+the United States. It now trusts only the CDN edge header (`CF-IPCountry` and
+friends), falling back to the shop's own country, which is right for most of this
+traffic.
+
+- **Tests:** 215 passing / 1,096 assertions (was 197).
+- **Files added:** app/Support/{Countries,Geo}.php,
+  resources/views/components/phone-field.blade.php, tests/Feature/PhoneNumberTest.php
+- **Files modified:** composer.json/lock, app/Support/PhoneNumber.php,
+  app/Actions/CreateInquiry.php, app/Http/Controllers/{InquiryController,PageController,BusinessAccountController}.php,
+  resources/views/{cart,auth/register,pages/contact}.blade.php, lang/en/shop.php, lang/ar/shop.php
+
 ### "Reordered a category and it vanished" — made the admin explain itself (same day)
 Reordering was reported as not reaching the storefront. Reordering itself works —
 reproduced locally, a category dragged to the top tiles first. But **three

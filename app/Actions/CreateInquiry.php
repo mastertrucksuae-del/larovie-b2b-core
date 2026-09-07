@@ -43,7 +43,10 @@ class CreateInquiry
                 // on email instead.
                 'business_account_id' => auth('business')->id(),
                 'customer_name' => $data['customer_name'],
-                'customer_mobile' => PhoneNumber::toE164($data['customer_mobile']),
+                'customer_mobile' => PhoneNumber::toE164(
+                    $data['customer_mobile'],
+                    $data['customer_mobile_country'] ?? PhoneNumber::DEFAULT_REGION,
+                ),
                 'is_whatsapp' => $data['is_whatsapp'] ?? false,
                 'customer_email' => $data['customer_email'] ?? null,
                 'customer_company' => $data['customer_company'] ?? null,

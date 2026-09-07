@@ -278,4 +278,7 @@ return [
     'whatsapp_title' => 'Prefer to talk it through?',
     'whatsapp_body' => 'Message our wholesale team on WhatsApp for stock checks, lead times and pricing on bulk quantities.',
     'whatsapp_cta' => 'Chat on WhatsApp',
+    'country_code' => 'Country code',
+    'mobile_placeholder' => '50 123 4567',
+    'mobile_hint' => 'Pick your country, then type the number without the country code.',
 ];

@@ -27,7 +27,11 @@ class CategoriesTable
         }
 
         if ((int) ($record->visible_products_count ?? 0) === 0) {
-            return 'No live products';
+            // Distinguish "nothing was imported" from "nothing inside it is
+            // live yet" — they need completely different fixes.
+            return (int) ($record->total_products_count ?? 0) > 0
+                ? 'Products not live yet'
+                : 'Collection is empty';
         }
 
         $picked = HomeContent::featuredCategoryIds();
@@ -66,9 +70,19 @@ class CategoriesTable
                 // and still tile to nothing if none of them are visible.
                 TextColumn::make('visible_products_count')
                     ->label('Live products')
-                    ->counts(['products as visible_products_count' => fn ($q) => $q->publiclyVisible()])
+                    ->counts([
+                        'products as visible_products_count' => fn ($q) => $q->publiclyVisible(),
+                        'products as total_products_count',
+                    ])
                     ->badge()
-                    ->color(fn (?int $state) => $state > 0 ? 'gray' : 'danger'),
+                    ->color(fn (?int $state) => $state > 0 ? 'gray' : 'danger')
+                    // "0" alone reads like the import failed. "0 of 77" says the
+                    // collection imported fine and the products inside it are
+                    // what need attention.
+                    ->description(fn (Category $record) => sprintf(
+                        'of %d in the collection',
+                        (int) ($record->total_products_count ?? 0)
+                    )),
                 // Toggled straight from the list: switching a category on is the
                 // single most common action here, and opening an edit page to
                 // flip one boolean is friction for no gain.
@@ -79,7 +93,14 @@ class CategoriesTable
                     ->label('On homepage')
                     ->badge()
                     ->state(fn (Category $record) => self::homepageStatus($record))
-                    ->color(fn (string $state) => $state === 'Showing' ? 'success' : 'warning'),
+                    ->color(fn (string $state) => $state === 'Showing' ? 'success' : 'warning')
+                    ->tooltip(fn (string $state) => match ($state) {
+                        'Products not live yet' => 'The collection imported fine. Its products are hidden, archived or bundles, so the storefront has nothing to show. Make them visible under Products.',
+                        'Switched off' => 'Turn on the Shown toggle to put this category on the homepage.',
+                        'Not picked in Settings' => 'Settings -> Homepage has a hand-picked list of featured categories, and this one is not in it. Add it there, or clear the list to show categories in this order.',
+                        'Collection is empty' => 'No products from this Shopify collection matched the catalogue. Run a product sync first, then import collections again.',
+                        default => null,
+                    }),
                 TextColumn::make('synced_at')
                     ->label('Last imported')
                     ->dateTime('d M Y, H:i')

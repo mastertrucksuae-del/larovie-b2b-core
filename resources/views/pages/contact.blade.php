@@ -115,11 +115,7 @@
                 </div>
 
                 <div class="grid sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-ink mb-1" for="c_mobile">{{ __('shop.mobile') }}</label>
-                        <input id="c_mobile" name="customer_mobile" value="{{ old('customer_mobile') }}" required dir="ltr"
-                               class="w-full rounded-lg border border-line bg-ivory px-3 py-2.5 focus:border-plum focus:ring-1 focus:ring-plum outline-none">
-                    </div>
+                    <x-phone-field name="customer_mobile" id="c_mobile" :label="__('shop.mobile')" required />
                     <div>
                         <label class="block text-sm font-medium text-ink mb-1" for="c_email">{{ __('shop.email') }}</label>
                         <input id="c_email" name="customer_email" type="email" value="{{ old('customer_email') }}"

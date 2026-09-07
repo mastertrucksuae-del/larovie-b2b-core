@@ -8,9 +8,10 @@
     $buyer = auth('business')->user();
     $canOrder = $buyer?->canSubmitInquiry() ?? false;
 
-    // The +971 prefix is rendered beside the field, so a stored E.164 number
-    // would show as "+971+971..." if pasted in whole.
-    $buyerMobile = $buyer ? ltrim(preg_replace('/^\+?971/', '', $buyer->phone ?? ''), ' 0') : null;
+    // The field shows the dialling code separately, so a stored E.164 number is
+    // split back into its region and national part instead of being pasted in
+    // whole and rendering as "+971 +971…".
+    [$buyerCountry, $buyerMobile] = \App\Support\PhoneNumber::split($buyer?->phone);
 @endphp
 
 @section('content')
@@ -79,15 +80,11 @@
                         @error('customer_name') <p class="mt-1 text-xs text-rose-deep">{{ $message }}</p> @enderror
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-ink mb-1.5">{{ __('shop.mobile') }} *</label>
-                        <div class="flex gap-2" dir="ltr">
-                            <span class="inline-flex items-center rounded-xl border border-line bg-sand px-3 text-plum-600 text-sm">+971</span>
-                            <input type="tel" name="customer_mobile" value="{{ old('customer_mobile', $buyerMobile) }}" required placeholder="50 123 4567"
-                                   class="w-full rounded-xl border border-line bg-ivory px-4 py-2.5 text-ink focus:border-plum focus:ring-2 focus:ring-plum/15 focus:bg-white transition">
-                        </div>
-                        @error('customer_mobile') <p class="mt-1 text-xs text-rose-deep">{{ $message }}</p> @enderror
-                    </div>
+                    <x-phone-field name="customer_mobile"
+                                   :label="__('shop.mobile')"
+                                   :value="$buyerMobile"
+                                   :country="$buyerCountry"
+                                   required />
 
                     <label class="flex items-center gap-2.5 text-sm text-ink py-1">
                         <input type="checkbox" name="is_whatsapp" value="1" checked
